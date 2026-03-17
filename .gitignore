@@ -1,0 +1,31 @@
+# Xcode
+DerivedData/
+*.xcuserstate
+xcuserdata/
+*.xcuserdatad/
+*.moved-aside
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+
+# Build output
+build/
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+
+# Local project tracking (not for public repo)
+plan.md
+backlog.md
+research.md
+
+# Environment
+.env
+.env.*
