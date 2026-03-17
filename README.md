@@ -59,21 +59,11 @@ Adobe Lightroom's free camera also captures RAW DNG, but it requires an Adobe ac
 
 ---
 
-## Compared to other RAW camera apps
+## Alternatives
 
-If you want a polished, production-ready RAW camera, use one of these — they're genuinely good:
+RawCam is intentionally barebones. If you want manual controls, focus peaking, ProRAW, or a polished UI, you'll be better served by [Halide](https://halide.cam), [ProCamera](https://www.procamera-app.com), or [Not Boring Camera](https://notbor.ing/products/camera) — they're all genuinely good.
 
-| App | Price | What it does better than RawCam |
-|-----|-------|----------------------------------|
-| [Halide](https://halide.cam) | $36 one-time / $10/yr | Process Zero, manual focus, focus peaking, zebra stripes, ProRAW, waveform — the category benchmark |
-| [ProCamera](https://www.procamera-app.com) | $8.99 one-time | Full manual controls, RAW burst, exposure bracketing, lens switching |
-| [Moment Pro Camera](https://www.shopmoment.com/apps) | $9.99 one-time | Best for video, Apple Log, ProRes, 10-bit, great for filmmakers |
-| [Not Boring Camera](https://notbor.ing/products/camera) | $15/yr | The best-designed camera app on iOS, film aesthetics baked in at capture |
-| [Zerocam](https://zerocam.app) | $13/yr | Even simpler UI, strong anti-AI brand positioning |
-
-RawCam doesn't compete with any of them on features. It exists for a different reason: it's **open source**, requires no account, costs nothing, and does exactly one thing — gets RAW DNG files off your sensor with no AI processing and no friction.
-
-It's barebones by design. Think of it less as a camera app and more as a reference implementation: here's the minimum code needed to capture unprocessed RAW on iOS.
+RawCam exists for a different reason: it's open source, costs nothing, and does exactly one thing.
 
 ---
 
