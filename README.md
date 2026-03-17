@@ -2,8 +2,9 @@
   <img src="assets/app-icon.png" width="128" height="128" alt="RawCam app icon">
 </p>
 <h1 align="center">RawCam</h1>
-<p align="center">No AI. Just your sensor.<br>
-An iOS camera that captures unprocessed RAW DNG files — bypassing Smart HDR, Deep Fusion, Night Mode, and Apple's entire computational photography pipeline.</p>
+<p align="center">A minimal, open-source iOS camera app. No AI postprocessing. Just your sensor.<br>
+No Smart HDR, no Deep Fusion, no Night Mode, no noise reduction, no sharpening.<br>
+Open the DNG in Lightroom or Darkroom and get 2–3 extra stops of recovery the JPEG never had.</p>
 <p align="center"><strong>v0.2</strong> · iOS 17+ · Requires Xcode to build</p>
 <p align="center"><a href="#how-to-build--install"><strong>Build & Install →</strong></a></p>
 
