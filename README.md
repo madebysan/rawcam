@@ -9,8 +9,6 @@
 
 ---
 
-<!-- TODO: add stock-iPhone vs RawCam DNG comparison shots here (low light / sunset / high-contrast daylight) -->
-
 RawCam is a minimal iOS camera that saves only the sensor's raw DNG. Tap the shutter, open the file in Lightroom or any RAW editor, and process it yourself.
 
 ## What it does
