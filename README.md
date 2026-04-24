@@ -1,25 +1,32 @@
+
 <p align="center">
   <img src="assets/app-icon.png" width="128" height="128" alt="RawCam app icon">
 </p>
 <h1 align="center">RawCam</h1>
-<p align="center">A minimal, open-source iOS camera app. No AI postprocessing. Just your sensor.<br>
-No Smart HDR, no Deep Fusion, no Night Mode, no noise reduction, no sharpening.<br>
-Open the DNG in Lightroom or Darkroom and get 2–3 extra stops of recovery the JPEG never had.</p>
+<p align="center">A minimal iOS camera. Saves only the sensor's raw DNG.</p>
 <p align="center"><strong>v0.2</strong> · iOS 17+ · Requires Xcode to build</p>
 <p align="center"><a href="#how-to-build--install"><strong>Build & Install →</strong></a></p>
 
 ---
 
+<!-- TODO: add stock-iPhone vs RawCam DNG comparison shots here (low light / sunset / high-contrast daylight) -->
+
+RawCam is a minimal iOS camera that saves only the sensor's raw DNG. Tap the shutter, open the file in Lightroom or any RAW editor, and process it yourself.
+
 ## What it does
 
-- **RAW mode** — saves a single 12MP DNG with zero AI processing
-- **RAW+JPG mode** — captures both a clean DNG and an Apple-processed JPEG simultaneously (saved as 2 photos), useful for comparing what Apple's pipeline does to a shot
-- **Tap to focus** — tap anywhere on preview; long-press to lock AF + AE
-- **Flash toggle** — off / on / auto
-- **Front/back camera** switch
-- **Live histogram** — 8-bar readout, shadows to highlights
+- **RAW mode.** Saves a single 12MP DNG with zero AI processing.
+- **RAW+JPG mode.** Captures both a clean DNG and an Apple-processed JPEG simultaneously (saved as two photos). Useful for comparing what the stock pipeline does to a shot.
+- **Tap to focus.** Tap anywhere on preview. Long-press to lock AF + AE.
+- **Flash toggle.** Off / on / auto.
+- **Front / back camera** switch.
+- **Live histogram.** 8-bar readout, shadows to highlights.
 
----
+## Alternatives
+
+RawCam is intentionally barebones. If you want manual controls, focus peaking, ProRAW, or a polished UI, you'll be better served by [Halide](https://halide.cam), [ProCamera](https://www.procamera-app.com), or [Not Boring Camera](https://notbor.ing/products/camera). They're all genuinely good.
+
+RawCam exists for a different reason: it's open source, costs nothing, and does exactly one thing.
 
 ## How to build & install
 
@@ -38,6 +45,7 @@ xcrun devicectl device install app \
 ```
 
 Find your device ID:
+
 ```bash
 xcrun xctrace list devices
 ```
@@ -47,32 +55,15 @@ Minimum iOS: 17.0
 
 > **Signing:** Open `RawCam.xcodeproj` in Xcode, select the RawCam target → Signing & Capabilities → change the Team to your own Apple Developer account.
 
----
+## Known limitations
 
-## Why not just use the iOS Camera app?
-
-The stock Camera app always applies an irreversible AI pipeline (Smart HDR, Deep Fusion, tone mapping, etc.) before saving. Once applied, the original sensor data is gone. RawCam skips all of that — what the sensor captured is what you get.
-
-Adobe Lightroom's free camera also captures RAW DNG, but it requires an Adobe account and is buried inside an editing app. RawCam is a single-purpose camera with no account needed.
-
-**Limitation:** iOS caps third-party RAW capture at 12MP. The 48MP full sensor readout is locked to Apple's own camera pipeline.
-
----
-
-## Alternatives
-
-RawCam is intentionally barebones. If you want manual controls, focus peaking, ProRAW, or a polished UI, you'll be better served by [Halide](https://halide.cam), [ProCamera](https://www.procamera-app.com), or [Not Boring Camera](https://notbor.ing/products/camera) — they're all genuinely good.
-
-RawCam exists for a different reason: it's open source, costs nothing, and does exactly one thing.
-
----
+- **12MP cap.** iOS caps third-party RAW capture at 12MP. The 48MP full sensor readout is locked to Apple's own camera pipeline, so any third-party app hits the same ceiling.
+- **Build-from-source only.** No TestFlight, no App Store build. To use the app, you need an Apple Developer account and Xcode.
 
 ## Stack
 
 - Swift + SwiftUI + AVFoundation + Photos
 - No dependencies, no packages
-
----
 
 ## Feedback
 
