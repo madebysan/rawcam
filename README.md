@@ -22,12 +22,6 @@ RawCam is a minimal iOS camera that saves only the sensor's raw DNG. Tap the shu
 - **Front / back camera** switch.
 - **Live histogram.** 8-bar readout, shadows to highlights.
 
-## Alternatives
-
-RawCam is barebones. For manual controls, focus peaking, ProRAW, or a polished UI, use [Halide](https://halide.cam), [ProCamera](https://www.procamera-app.com), or [Not Boring Camera](https://notbor.ing/products/camera) instead. All three are good.
-
-RawCam is the free, open-source version that does one thing.
-
 ## Why not just use the iOS Camera app?
 
 The stock Camera app runs every shot through an AI pipeline: Smart HDR, Deep Fusion, tone mapping, noise reduction, sharpening. Once applied, the original sensor data is gone. In dynamic range or low light, that's 2–3 stops of recovery baked out of the JPEG you can never get back. RawCam saves the DNG before any of that happens.
@@ -58,6 +52,12 @@ xcrun xctrace list devices
 
 - **12MP cap.** iOS caps third-party RAW capture at 12MP. The 48MP full sensor readout is locked to Apple's own camera pipeline, so any third-party app hits the same ceiling.
 - **Build-from-source only.** No TestFlight, no App Store build. To use the app, you need an Apple Developer account and Xcode.
+
+## Alternatives
+
+RawCam is barebones. For manual controls, focus peaking, ProRAW, or a polished UI, use [Halide](https://halide.cam), [ProCamera](https://www.procamera-app.com), or [Not Boring Camera](https://notbor.ing/products/camera) instead. All three are good.
+
+RawCam is the free, open-source version that does one thing.
 
 ## Stack
 
