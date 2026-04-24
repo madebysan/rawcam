@@ -9,6 +9,12 @@
 
 ---
 
+<p align="center">
+  <img src="assets/screenshot.png" width="720" alt="RawCam interface, info panel, and a side-by-side comparison of the same scene captured with RawCam and the iOS Camera app">
+</p>
+
+---
+
 RawCam is a minimal iOS camera that saves only the sensor's raw DNG. Tap the shutter, open the file in Lightroom or any RAW editor, and process it yourself.
 
 ## What it does
