@@ -4,8 +4,8 @@
 </p>
 <h1 align="center">RawCam</h1>
 <p align="center">A minimal iOS camera. Saves only the sensor's raw DNG.</p>
-<p align="center"><strong>v0.2</strong> · iOS 17+ · Requires Xcode to build</p>
-<p align="center"><a href="#how-to-build--install"><strong>Build & Install →</strong></a></p>
+<p align="center"><strong>v1.0</strong> · iOS 17+ · In App Store review</p>
+<p align="center"><a href="#how-to-build--install"><strong>Build from source →</strong></a></p>
 
 ---
 
@@ -55,7 +55,6 @@ xcrun xctrace list devices
 ## Known limitations
 
 - **12MP cap.** iOS caps third-party RAW capture at 12MP. The 48MP full sensor readout is locked to Apple's own camera pipeline, so any third-party app hits the same ceiling.
-- **Build-from-source only.** No TestFlight, no App Store build. To use the app, you need an Apple Developer account and Xcode.
 
 ## Alternatives
 
@@ -70,7 +69,7 @@ RawCam is the free, open-source version that does one thing.
 
 ## Feedback
 
-Found a bug or have a feature idea? [Open an issue](https://github.com/madebysan/rawcam/issues).
+Found a bug or have a feature idea? See the [support page](docs/support.md) for FAQs and contact info, or [open an issue](https://github.com/madebysan/rawcam/issues).
 
 ## License
 
