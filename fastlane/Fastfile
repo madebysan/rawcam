@@ -66,7 +66,11 @@ platform :ios do
       export_method: "app-store",
       output_directory: "build",
       output_name: "RawCam.ipa",
-      clean: true
+      clean: true,
+      xcargs: "-allowProvisioningUpdates",
+      export_options: {
+        signingStyle: "automatic"
+      }
     )
   end
 
