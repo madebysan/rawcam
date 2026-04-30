@@ -1,0 +1,23 @@
+app_identifier("com.santiagoalonso.rawcam")
+username("snt.aln@gmail.com")
+
+primary_category("PHOTO_AND_VIDEO")
+secondary_category("UTILITIES")
+
+copyright("© 2026 Santiago Alonso")
+
+app_review_information(
+  first_name: "Santiago",
+  last_name: "Alonso",
+  phone_number: "+1 347 574 2093",
+  email_address: "snt.aln@gmail.com",
+  demo_user: nil,
+  demo_password: nil,
+  notes: "RawCam is a minimal camera that saves only the sensor's raw DNG file to the device's photo library. No account, no network requests, no servers. To test: launch the app, grant camera and photo library permissions, tap the shutter button. The captured DNG will appear in the Photos app. Tap to focus, long-press to lock AF/AE. Toggle between RAW and RAW+JPG modes via the on-screen control. Front and back cameras both supported."
+)
+
+submission_information({
+  add_id_info_uses_idfa: false,
+  export_compliance_uses_encryption: false,
+  content_rights_contains_third_party_content: false
+})

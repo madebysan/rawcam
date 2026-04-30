@@ -1,0 +1,34 @@
+RawCam is a minimal camera that saves only the sensor's raw DNG file. No AI postprocessing, no Smart HDR, no tone mapping, no noise reduction. Tap the shutter, open the photo in your favorite RAW editor, and process it yourself.
+
+WHY RAW
+
+The standard Camera app runs every shot through a heavy AI pipeline before saving. That pipeline is great for sharing-ready photos, but it bakes its decisions into the final JPEG and the original sensor data is gone. In low light or high dynamic range scenes, that's two or three stops of recovery you can never get back.
+
+A DNG file preserves the unprocessed sensor data. You decide how to expose, sharpen, color, and denoise it later, in Lightroom, Capture One, Darkroom, or any other RAW editor.
+
+WHAT YOU GET
+
+• RAW mode — saves a single 12MP DNG with zero processing
+• RAW+JPG mode — saves both a clean DNG and a processed JPEG simultaneously, useful for comparison
+• Tap to focus anywhere on the preview
+• Long-press to lock focus and exposure
+• Flash with off, on, and auto modes
+• Front and back camera switch
+• Live histogram showing tonal distribution from shadows to highlights
+• Portrait orientation, designed for one-handed use
+
+PRIVACY
+
+RawCam doesn't collect anything. There's no account, no login, no analytics, no advertising, no third-party tracking, and no server. The app makes zero network requests. Photos save directly to your photo library and never leave your device.
+
+ABOUT THE 12 MEGAPIXEL CAP
+
+Apple caps third-party RAW capture at 12MP. The 48MP full sensor readout is reserved for the system Camera app. This is a platform limitation that applies to every third-party camera, not a RawCam limitation.
+
+OPEN SOURCE
+
+RawCam is open source under the MIT license. The full source lives at github.com/madebysan/rawcam.
+
+SUPPORT
+
+Found a bug or have a request? Email me directly. The support page link below has FAQs and a contact address.

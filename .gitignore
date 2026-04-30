@@ -15,6 +15,13 @@ build/
 *.dSYM.zip
 *.dSYM
 
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/screenshots.html
+fastlane/test_output
+fastlane/README.md
+
 # macOS
 .DS_Store
 .AppleDouble

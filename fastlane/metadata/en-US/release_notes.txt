@@ -1,0 +1,1 @@
+First release. Capture raw DNG files with no AI postprocessing. RAW and RAW+JPG modes, tap-to-focus with long-press AF/AE lock, flash control, front/back camera, live histogram.

@@ -1,0 +1,173 @@
+default_platform(:ios)
+
+API_KEY_PATH = "/Users/san/private_keys/api_key.json"
+SCHEME = "RawCam"
+PROJECT = "RawCam.xcodeproj"
+
+platform :ios do
+  before_all do
+    ENV["FASTLANE_HIDE_CHANGELOG"] = "1"
+    ENV["FASTLANE_SKIP_UPDATE_CHECK"] = "1"
+  end
+
+  desc "Run pre-flight checks (Markflow rejection lessons)"
+  lane :preflight do
+    project_root = File.expand_path("..", __dir__)
+    metadata_dir = File.join(project_root, "fastlane/metadata/en-US")
+    issues = []
+
+    %w[name.txt subtitle.txt promotional_text.txt description.txt keywords.txt].each do |f|
+      path = File.join(metadata_dir, f)
+      next unless File.exist?(path)
+      content = File.read(path)
+      banned = content.scan(/\b(iOS|iPhone|iPad|macOS|Mac)\b/)
+      next if banned.empty?
+      next if f == "description.txt" && banned.size <= 2
+      issues << "#{f}: trademark term used as marketing — #{banned.uniq.join(", ")}"
+    end
+
+    support_path = File.join(metadata_dir, "support_url.txt")
+    if File.exist?(support_path)
+      url = File.read(support_path).strip
+      issues << "support_url.txt: must be a real FAQ page, not an issue tracker" if url.include?("/issues")
+    end
+
+    plist_path = File.join(project_root, "RawCam.xcodeproj/project.pbxproj")
+    unless File.read(plist_path).include?("INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO")
+      issues << "Missing INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO in project.pbxproj"
+    end
+
+    if issues.empty?
+      UI.success("All pre-flight checks passed.")
+    else
+      UI.user_error!("Pre-flight failed:\n  - #{issues.join("\n  - ")}")
+    end
+  end
+
+  desc "Bump build number"
+  lane :bump do
+    increment_build_number(xcodeproj: PROJECT)
+  end
+
+  desc "Build and export signed IPA"
+  lane :build do
+    app_store_connect_api_key(
+      key_id: "DTWJG858MG",
+      issuer_id: "7efbe64f-d059-4e70-9c0b-02e8bf987fae",
+      key_filepath: "/Users/san/private_keys/AuthKey_DTWJG858MG.p8",
+      duration: 1200,
+      in_house: false
+    )
+
+    build_app(
+      project: PROJECT,
+      scheme: SCHEME,
+      configuration: "Release",
+      export_method: "app-store",
+      output_directory: "build",
+      output_name: "RawCam.ipa",
+      clean: true
+    )
+  end
+
+  desc "Upload IPA to App Store Connect (TestFlight + processing)"
+  lane :upload do
+    api_key = app_store_connect_api_key(
+      key_id: "DTWJG858MG",
+      issuer_id: "7efbe64f-d059-4e70-9c0b-02e8bf987fae",
+      key_filepath: "/Users/san/private_keys/AuthKey_DTWJG858MG.p8",
+      duration: 1200,
+      in_house: false
+    )
+
+    upload_to_app_store(
+      api_key: api_key,
+      ipa: "build/RawCam.ipa",
+      skip_metadata: true,
+      skip_screenshots: true,
+      precheck_include_in_app_purchases: false,
+      submit_for_review: false
+    )
+  end
+
+  desc "Push metadata + screenshots (no binary upload)"
+  lane :metadata do
+    api_key = app_store_connect_api_key(
+      key_id: "DTWJG858MG",
+      issuer_id: "7efbe64f-d059-4e70-9c0b-02e8bf987fae",
+      key_filepath: "/Users/san/private_keys/AuthKey_DTWJG858MG.p8",
+      duration: 1200,
+      in_house: false
+    )
+
+    upload_to_app_store(
+      api_key: api_key,
+      skip_binary_upload: true,
+      submit_for_review: false,
+      precheck_include_in_app_purchases: false,
+      force: true
+    )
+  end
+
+  desc "Push metadata + screenshots, then submit existing binary for review (no rebuild)"
+  lane :release do
+    preflight
+
+    api_key = app_store_connect_api_key(
+      key_id: "DTWJG858MG",
+      issuer_id: "7efbe64f-d059-4e70-9c0b-02e8bf987fae",
+      key_filepath: "/Users/san/private_keys/AuthKey_DTWJG858MG.p8",
+      duration: 1200,
+      in_house: false
+    )
+
+    upload_to_app_store(
+      api_key: api_key,
+      skip_binary_upload: true,
+      skip_metadata: false,
+      skip_screenshots: false,
+      submit_for_review: true,
+      automatic_release: true,
+      submission_information: {
+        add_id_info_uses_idfa: false,
+        export_compliance_uses_encryption: false,
+        content_rights_contains_third_party_content: false
+      },
+      precheck_include_in_app_purchases: false,
+      force: true
+    )
+  end
+
+  desc "Full flow: preflight → build → upload → push metadata → submit for review"
+  lane :submit do
+    preflight
+    bump
+    build
+    upload
+    metadata
+
+    api_key = app_store_connect_api_key(
+      key_id: "DTWJG858MG",
+      issuer_id: "7efbe64f-d059-4e70-9c0b-02e8bf987fae",
+      key_filepath: "/Users/san/private_keys/AuthKey_DTWJG858MG.p8",
+      duration: 1200,
+      in_house: false
+    )
+
+    upload_to_app_store(
+      api_key: api_key,
+      skip_binary_upload: true,
+      skip_metadata: false,
+      skip_screenshots: false,
+      submit_for_review: true,
+      automatic_release: true,
+      submission_information: {
+        add_id_info_uses_idfa: false,
+        export_compliance_uses_encryption: false,
+        content_rights_contains_third_party_content: false
+      },
+      precheck_include_in_app_purchases: false,
+      force: true
+    )
+  end
+end
