@@ -5,6 +5,18 @@ Updated every session via `/save-session`.
 
 ---
 
+## 2026-05-01 (session 2)
+
+### Features
+- **App Store live** — RawCam v1.0 approved and available at https://apps.apple.com/us/app/rawcam-raw-dng-camera/id6765531876
+
+### Docs
+- **README badge** — replaced "In App Store review" status with the official Download on the App Store badge, matching the Arrival README pattern
+
+### Status: shipped (live on App Store)
+
+---
+
 ## 2026-04-30 (session 1)
 
 ### Features
