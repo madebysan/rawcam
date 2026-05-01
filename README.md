@@ -4,8 +4,13 @@
 </p>
 <h1 align="center">RawCam</h1>
 <p align="center">A minimal iOS camera. Saves only the sensor's raw DNG.</p>
-<p align="center"><strong>v1.0</strong> · iOS 17+ · In App Store review</p>
-<p align="center"><a href="#how-to-build--install"><strong>Build from source →</strong></a></p>
+<p align="center"><strong>v1.0</strong> · iOS 17+</p>
+
+<p align="center">
+  <a href="https://apps.apple.com/us/app/rawcam-raw-dng-camera/id6765531876">
+    <img src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg" alt="Download on the App Store" height="50">
+  </a>
+</p>
 
 ---
 
