@@ -1,24 +1,22 @@
+<p><img src="assets/app-icon.png" width="128" height="128" alt="RawCam app icon"></p>
 
-<p align="center">
-  <img src="assets/app-icon.png" width="128" height="128" alt="RawCam app icon">
-</p>
-<h1 align="center">RawCam</h1>
-<p align="center">A minimal iOS camera. Saves only the sensor's raw DNG.</p>
-<p align="center"><strong>v1.0</strong> · iOS 17+</p>
+<h1>RawCam</h1>
 
-<p align="center">
-  <a href="https://apps.apple.com/us/app/rawcam-raw-dng-camera/id6765531876">
-    <img src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg" alt="Download on the App Store" height="50">
-  </a>
-</p>
+<p>A minimal iOS camera. Saves only the sensor's raw DNG.</p>
 
----
+<p><strong>v1.0</strong> · iOS 17+</p>
 
-<p align="center">
-  <img src="assets/screenshot.png" width="720" alt="RawCam interface, info panel, and a side-by-side comparison of the same scene captured with RawCam and the iOS Camera app">
+<p>
+  <img src="https://img.shields.io/badge/Swift-f05138" alt="Swift">
+  <img src="https://img.shields.io/badge/SwiftUI-0066cc" alt="SwiftUI">
+  <img src="https://img.shields.io/badge/iOS-000000" alt="iOS">
 </p>
 
----
+<p>
+  <a href="https://apps.apple.com/us/app/rawcam-raw-dng-camera/id6765531876"><img src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg" alt="Download on the App Store" height="50"></a>
+</p>
+
+![RawCam interface, info panel, and a side-by-side comparison of the same scene captured with RawCam and the iOS Camera app](assets/screenshot.png)
 
 RawCam is a minimal iOS camera that saves only the sensor's raw DNG. Tap the shutter, open the file in Lightroom or any RAW editor, and process it yourself.
 
