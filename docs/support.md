@@ -31,6 +31,12 @@ To your iPhone's photo library, the same place the regular Camera app saves to. 
 
 Tap anywhere on the preview to focus there. The reticle shows where the camera is focused. Long-press to lock both autofocus and auto-exposure on that point — useful when you want to recompose without the exposure shifting.
 
+### How do manual controls work?
+
+Tap `EXP` above the shutter to switch between auto and manual exposure. Manual mode gives you ISO and shutter controls. Tap `WB` to choose auto white balance, a preset, or a Kelvin value.
+
+When focus or exposure is locked, the `AF/AE` badge turns yellow. Tap it to return to auto focus and auto exposure.
+
 ### Why is the resolution 12 megapixels and not 48?
 
 Apple caps third-party RAW capture at 12MP on iPhone. The 48MP full sensor readout is reserved for Apple's own camera pipeline. Every third-party camera app hits the same ceiling — that's an iPhone hardware/software limitation, not a RawCam limitation.

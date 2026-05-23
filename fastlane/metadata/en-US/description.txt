@@ -12,6 +12,8 @@ WHAT YOU GET
 • RAW+JPG mode — saves both a clean DNG and a processed JPEG simultaneously, useful for comparison
 • Tap to focus anywhere on the preview
 • Long-press to lock focus and exposure
+• Manual exposure controls for ISO and shutter speed
+• White balance controls with presets and Kelvin adjustment
 • Flash with off, on, and auto modes
 • Front and back camera switch
 • Live histogram showing tonal distribution from shadows to highlights

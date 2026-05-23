@@ -5,6 +5,18 @@ Updated every session via `/save-session`.
 
 ---
 
+## 2026-05-23
+
+### Features
+- **Manual controls drawer** — exposed the existing manual exposure and white-balance controls above the shutter, with ISO, shutter speed, presets, Kelvin adjustment, and a tappable AF/AE unlock badge.
+
+### Docs
+- **Feature copy** — updated README, support docs, and App Store metadata for the newly visible controls.
+
+### Status: local build passing
+
+---
+
 ## 2026-05-01 (session 2)
 
 ### Features

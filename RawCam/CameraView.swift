@@ -20,12 +20,18 @@ private enum Theme {
 // MARK: - Camera View
 
 struct CameraView: View {
+    private enum ControlPanel {
+        case exposure
+        case whiteBalance
+    }
+
     @StateObject private var camera = CameraManager()
     @State private var showPermissionDenied = false
     @State private var viewSize: CGSize = .zero
 
     // Panel state
     @State private var showHelp = false
+    @State private var activePanel: ControlPanel?
 
     // Shutter animation
     @State private var shutterPulse = 0
@@ -336,6 +342,8 @@ struct CameraView: View {
 
     private var mainControls: some View {
         VStack(spacing: 10) {
+            controlsDrawer
+
             // Saved / error feedback
             ZStack {
                 if camera.showSavedConfirmation {
@@ -418,6 +426,127 @@ struct CameraView: View {
                 }
                 .frame(maxWidth: .infinity)
             }
+        }
+    }
+
+    private var controlsDrawer: some View {
+        VStack(spacing: 0) {
+            controlStrip
+
+            if activePanel == .exposure {
+                exposurePanel
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+
+            if activePanel == .whiteBalance {
+                wbPanel
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .padding(.vertical, 6)
+        .background(.black.opacity(0.58), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
+        )
+        .animation(Theme.tapSpring, value: activePanel)
+    }
+
+    private var controlStrip: some View {
+        HStack(spacing: 8) {
+            controlChip(
+                title: "EXP",
+                value: exposureSummary,
+                isActive: activePanel == .exposure,
+                action: { togglePanel(.exposure) }
+            )
+
+            controlChip(
+                title: "WB",
+                value: whiteBalanceSummary,
+                isActive: activePanel == .whiteBalance,
+                action: { togglePanel(.whiteBalance) }
+            )
+
+            focusLockChip
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+    }
+
+    private var focusLockChip: some View {
+        Button {
+            guard camera.isFocusLocked || camera.isExposureLocked else { return }
+            hapticMedium.impactOccurred()
+            hapticMedium.prepare()
+            camera.unlockFocus()
+        } label: {
+            VStack(spacing: 2) {
+                Text("AF/AE")
+                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                    .tracking(1)
+                Text(camera.isFocusLocked || camera.isExposureLocked ? "LOCK" : "AUTO")
+                    .font(.system(size: 12, weight: .bold, design: .monospaced))
+            }
+            .foregroundColor(camera.isFocusLocked || camera.isExposureLocked ? .black : Theme.textSecondary)
+            .frame(maxWidth: .infinity)
+            .frame(height: 44)
+            .background(
+                camera.isFocusLocked || camera.isExposureLocked
+                    ? Color.yellow
+                    : Theme.surface,
+                in: RoundedRectangle(cornerRadius: 10, style: .continuous)
+            )
+        }
+        .buttonStyle(DimPressStyle())
+        .disabled(!(camera.isFocusLocked || camera.isExposureLocked))
+    }
+
+    private func controlChip(
+        title: String,
+        value: String,
+        isActive: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button {
+            hapticMedium.impactOccurred()
+            hapticMedium.prepare()
+            action()
+        } label: {
+            VStack(spacing: 2) {
+                Text(title)
+                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                    .tracking(1)
+                Text(value)
+                    .font(.system(size: 12, weight: .bold, design: .monospaced))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+            .foregroundColor(isActive ? Theme.bg : Theme.textPrimary)
+            .frame(maxWidth: .infinity)
+            .frame(height: 44)
+            .background(
+                isActive ? Theme.accent : Theme.surface,
+                in: RoundedRectangle(cornerRadius: 10, style: .continuous)
+            )
+        }
+        .buttonStyle(DimPressStyle())
+    }
+
+    private var exposureSummary: String {
+        camera.isManualExposure ? shutterLabel : "AUTO"
+    }
+
+    private var whiteBalanceSummary: String {
+        if camera.isManualWhiteBalance {
+            return "\(Int(camera.kelvin))K"
+        }
+        return "AUTO"
+    }
+
+    private func togglePanel(_ panel: ControlPanel) {
+        withAnimation(Theme.tapSpring) {
+            activePanel = activePanel == panel ? nil : panel
         }
     }
 
