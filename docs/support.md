@@ -33,9 +33,17 @@ Tap anywhere on the preview to focus there. The reticle shows where the camera i
 
 ### How do manual controls work?
 
-Tap `EXP` above the shutter to switch between auto and manual exposure. Manual mode gives you ISO and shutter controls. Tap `WB` to choose auto white balance, a preset, or a Kelvin value.
+Tap `EXP` above the shutter to adjust exposure. In auto mode, the slider changes EV compensation. Switch to manual mode for ISO and shutter controls. Tap `WB` to choose auto white balance, a preset, or a Kelvin value.
 
 When focus or exposure is locked, the `AF/AE` badge turns yellow. Tap it to return to auto focus and auto exposure.
+
+### How do separate focus and exposure points work?
+
+The `TAP` control switches what a preview tap does. `FOCUS` sets focus. `METER` sets the exposure point without moving focus. The exposure point shows as a yellow `AE` target.
+
+### What are GRID, LEVEL, and TIMER?
+
+`GRID` adds a rule-of-thirds overlay. `LEVEL` shows a horizon indicator in the middle of the preview. `TIMER` cycles between off, 3 seconds, and 10 seconds.
 
 ### Why is the resolution 12 megapixels and not 48?
 
@@ -43,7 +51,7 @@ Apple caps third-party RAW capture at 12MP on iPhone. The 48MP full sensor reado
 
 ### What does the histogram show?
 
-An 8-bar readout from shadows on the left to highlights on the right. Tall bars on either edge mean detail is being clipped (lost) at that end of the tonal range. A balanced histogram across the middle is generally a healthy exposure.
+An 8-bar readout from shadows on the left to highlights on the right. Tall bars on either edge mean detail is being clipped (lost) at that end of the tonal range. RawCam tints the edge bar and shows `CLIP` when shadows or highlights are overloaded.
 
 ### Why does my photo look darker or flatter than the Camera app?
 

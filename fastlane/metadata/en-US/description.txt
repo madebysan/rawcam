@@ -13,10 +13,13 @@ WHAT YOU GET
 • Tap to focus anywhere on the preview
 • Long-press to lock focus and exposure
 • Manual exposure controls for ISO and shutter speed
+• EV compensation for auto exposure
+• Separate focus and exposure targeting
 • White balance controls with presets and Kelvin adjustment
+• Optional grid, horizon level, and self-timer
 • Flash with off, on, and auto modes
 • Front and back camera switch
-• Live histogram showing tonal distribution from shadows to highlights
+• Live histogram with highlight and shadow clipping warnings
 • Portrait orientation, designed for one-handed use
 
 PRIVACY

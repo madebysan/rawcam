@@ -1,5 +1,6 @@
 import SwiftUI
 import AVFoundation
+import CoreMotion
 
 // MARK: - Theme
 
@@ -25,13 +26,24 @@ struct CameraView: View {
         case whiteBalance
     }
 
+    private enum TapTarget {
+        case focus
+        case meter
+    }
+
     @StateObject private var camera = CameraManager()
+    @StateObject private var level = LevelManager()
     @State private var showPermissionDenied = false
     @State private var viewSize: CGSize = .zero
 
     // Panel state
     @State private var showHelp = false
     @State private var activePanel: ControlPanel?
+    @State private var tapTarget: TapTarget = .focus
+    @State private var showGrid = false
+    @State private var showLevel = false
+    @State private var selfTimerSeconds = 0
+    @State private var countdown: Int?
 
     // Shutter animation
     @State private var shutterPulse = 0
@@ -54,6 +66,17 @@ struct CameraView: View {
             }
             .ignoresSafeArea()
 
+            if showGrid {
+                GridOverlay()
+                    .ignoresSafeArea()
+                    .allowsHitTesting(false)
+            }
+
+            if showLevel {
+                HorizonLevel(roll: level.roll)
+                    .allowsHitTesting(false)
+            }
+
             // Flash white overlay on capture
             if flashOverlay {
                 Color.white.opacity(0.25)
@@ -65,6 +88,16 @@ struct CameraView: View {
             if camera.showFocusIndicator, let pt = camera.focusPoint {
                 FocusSquare(isLocked: camera.isFocusLocked)
                     .position(pt)
+            }
+
+            if camera.showExposureIndicator, let pt = camera.exposurePoint {
+                ExposureTarget()
+                    .position(pt)
+            }
+
+            if let countdown {
+                CountdownOverlay(value: countdown)
+                    .allowsHitTesting(false)
             }
 
             // ── Top bar ──────────────────────────────────────────
@@ -84,7 +117,11 @@ struct CameraView: View {
         .onAppear {
             hapticMedium.prepare()
             hapticHeavy.prepare()
+            level.start()
             checkPermissionAndStart()
+        }
+        .onDisappear {
+            level.stop()
         }
         .alert("Camera Access Required", isPresented: $showPermissionDenied) {
             Button("Open Settings") {
@@ -108,7 +145,11 @@ struct CameraView: View {
             SpatialTapGesture().onEnded { v in
                 hapticMedium.impactOccurred()
                 hapticMedium.prepare()
-                camera.focus(at: v.location, in: viewSize)
+                if tapTarget == .meter {
+                    camera.meterExposure(at: v.location, in: viewSize)
+                } else {
+                    camera.focus(at: v.location, in: viewSize)
+                }
             },
             LongPressGesture(minimumDuration: 0.5)
                 .sequenced(before: SpatialTapGesture())
@@ -131,8 +172,7 @@ struct CameraView: View {
     private var topBar: some View {
         HStack(alignment: .center) {
             // Left — histogram
-            BarHistogram(data: camera.histogramData)
-                .frame(width: 56, height: 28)
+            histogramCluster
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             // Center — mode selector
@@ -156,6 +196,27 @@ struct CameraView: View {
         }
         .padding(.horizontal, 24)
         .padding(.top, 60)
+    }
+
+    private var histogramCluster: some View {
+        HStack(spacing: 6) {
+            BarHistogram(
+                data: camera.histogramData,
+                shadowClipping: camera.isShadowClipping,
+                highlightClipping: camera.isHighlightClipping
+            )
+            .frame(width: 56, height: 28)
+
+            if camera.isShadowClipping || camera.isHighlightClipping {
+                Text("CLIP")
+                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                    .foregroundColor(.black)
+                    .tracking(0.8)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(Color.yellow, in: Capsule())
+            }
+        }
     }
 
     private var modeBadge: some View {
@@ -251,9 +312,26 @@ struct CameraView: View {
                     onRelease: { camera.setManualExposure(iso: camera.iso, shutterSpeed: camera.shutterSpeed) }
                 )
                 .padding(.horizontal, 20)
+            } else {
+                ExposureSlider(
+                    label: "EV",
+                    valueText: evLabel(camera.exposureBias),
+                    value: Binding(
+                        get: { Double(camera.exposureBias) },
+                        set: { camera.exposureBias = Float($0) }
+                    ),
+                    range: Double(camera.minExposureBias)...Double(camera.maxExposureBias),
+                    onRelease: { camera.setExposureBias(camera.exposureBias) }
+                )
+                .padding(.horizontal, 20)
             }
         }
         .padding(.vertical, 8)
+    }
+
+    private func evLabel(_ value: Float) -> String {
+        if abs(value) < 0.05 { return "0.0" }
+        return String(format: "%+.1f", value)
     }
 
     // MARK: - WB Panel
@@ -387,13 +465,12 @@ struct CameraView: View {
                 // Center — shutter, fixed width keeps it screen-centered
                 ShutterButton(
                     mode: camera.captureMode,
-                    isTakingPhoto: camera.isTakingPhoto,
+                    isTakingPhoto: camera.isTakingPhoto || countdown != nil,
                     pulseCount: $shutterPulse
                 ) {
                     hapticHeavy.impactOccurred()
                     hapticHeavy.prepare()
-                    triggerFlash()
-                    camera.capturePhoto()
+                    triggerCapture()
                 }
 
                 // Right — equal spacers: [space] info [space] flip
@@ -453,22 +530,54 @@ struct CameraView: View {
     }
 
     private var controlStrip: some View {
-        HStack(spacing: 8) {
-            controlChip(
-                title: "EXP",
-                value: exposureSummary,
-                isActive: activePanel == .exposure,
-                action: { togglePanel(.exposure) }
-            )
+        VStack(spacing: 8) {
+            HStack(spacing: 8) {
+                controlChip(
+                    title: "EXP",
+                    value: exposureSummary,
+                    isActive: activePanel == .exposure,
+                    action: { togglePanel(.exposure) }
+                )
 
-            controlChip(
-                title: "WB",
-                value: whiteBalanceSummary,
-                isActive: activePanel == .whiteBalance,
-                action: { togglePanel(.whiteBalance) }
-            )
+                controlChip(
+                    title: "WB",
+                    value: whiteBalanceSummary,
+                    isActive: activePanel == .whiteBalance,
+                    action: { togglePanel(.whiteBalance) }
+                )
 
-            focusLockChip
+                focusLockChip
+            }
+
+            HStack(spacing: 8) {
+                controlChip(
+                    title: "TIMER",
+                    value: timerSummary,
+                    isActive: selfTimerSeconds > 0,
+                    action: { cycleTimer() }
+                )
+
+                controlChip(
+                    title: "GRID",
+                    value: showGrid ? "ON" : "OFF",
+                    isActive: showGrid,
+                    action: { showGrid.toggle() }
+                )
+
+                controlChip(
+                    title: "LEVEL",
+                    value: showLevel ? "ON" : "OFF",
+                    isActive: showLevel,
+                    action: { showLevel.toggle() }
+                )
+
+                controlChip(
+                    title: "TAP",
+                    value: tapTarget == .meter ? "METER" : "FOCUS",
+                    isActive: tapTarget == .meter,
+                    action: { tapTarget = tapTarget == .focus ? .meter : .focus }
+                )
+            }
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
@@ -534,7 +643,7 @@ struct CameraView: View {
     }
 
     private var exposureSummary: String {
-        camera.isManualExposure ? shutterLabel : "AUTO"
+        camera.isManualExposure ? shutterLabel : evLabel(camera.exposureBias)
     }
 
     private var whiteBalanceSummary: String {
@@ -550,7 +659,49 @@ struct CameraView: View {
         }
     }
 
+    private var timerSummary: String {
+        selfTimerSeconds == 0 ? "OFF" : "\(selfTimerSeconds)S"
+    }
+
+    private func cycleTimer() {
+        switch selfTimerSeconds {
+        case 0: selfTimerSeconds = 3
+        case 3: selfTimerSeconds = 10
+        default: selfTimerSeconds = 0
+        }
+    }
+
     // MARK: - Helpers
+
+    private func triggerCapture() {
+        if countdown != nil {
+            countdown = nil
+            return
+        }
+
+        guard selfTimerSeconds > 0 else {
+            triggerFlash()
+            camera.capturePhoto()
+            return
+        }
+
+        runCountdown(selfTimerSeconds)
+    }
+
+    private func runCountdown(_ value: Int) {
+        guard value > 0 else {
+            countdown = nil
+            triggerFlash()
+            camera.capturePhoto()
+            return
+        }
+
+        countdown = value
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+            guard countdown == value else { return }
+            runCountdown(value - 1)
+        }
+    }
 
     private func triggerFlash() {
         shutterPulse += 1
@@ -759,6 +910,27 @@ struct FocusSquare: View {
     }
 }
 
+struct ExposureTarget: View {
+    var body: some View {
+        ZStack {
+            Circle()
+                .stroke(Color.yellow, lineWidth: 1.6)
+                .frame(width: 54, height: 54)
+            Circle()
+                .fill(Color.yellow)
+                .frame(width: 5, height: 5)
+            Text("AE")
+                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                .foregroundColor(.black)
+                .padding(.horizontal, 5)
+                .padding(.vertical, 2)
+                .background(Color.yellow, in: Capsule())
+                .offset(y: 36)
+        }
+        .shadow(color: .black.opacity(0.45), radius: 3)
+    }
+}
+
 struct CornerBracket: Shape {
     func path(in rect: CGRect) -> Path {
         let len: CGFloat = 12
@@ -775,6 +947,8 @@ struct CornerBracket: Shape {
 
 struct BarHistogram: View {
     let data: [UInt]
+    let shadowClipping: Bool
+    let highlightClipping: Bool
     private let barCount = 8
 
     private var buckets: [CGFloat] {
@@ -791,8 +965,6 @@ struct BarHistogram: View {
         return result.map { $0 / maxVal }
     }
 
-    private let barColors: [Color] = Array(repeating: Color.white, count: 8)
-
     var body: some View {
         GeometryReader { geo in
             let spacing: CGFloat = 3
@@ -805,7 +977,7 @@ struct BarHistogram: View {
                     VStack {
                         Spacer(minLength: 0)
                         RoundedRectangle(cornerRadius: 2)
-                            .fill(barColors[i].opacity(0.85))
+                            .fill(barColor(for: i).opacity(0.88))
                             .frame(
                                 width: barWidth,
                                 height: max(geo.size.height * h, 2)
@@ -815,6 +987,103 @@ struct BarHistogram: View {
             }
         }
         .padding(4)
+    }
+
+    private func barColor(for index: Int) -> Color {
+        if index == 0 && shadowClipping { return .yellow }
+        if index == barCount - 1 && highlightClipping { return .yellow }
+        return .white
+    }
+}
+
+// MARK: - Capture Aids
+
+struct GridOverlay: View {
+    var body: some View {
+        GeometryReader { geo in
+            Path { path in
+                let thirdWidth = geo.size.width / 3
+                let thirdHeight = geo.size.height / 3
+
+                for index in 1...2 {
+                    let x = CGFloat(index) * thirdWidth
+                    path.move(to: CGPoint(x: x, y: 0))
+                    path.addLine(to: CGPoint(x: x, y: geo.size.height))
+
+                    let y = CGFloat(index) * thirdHeight
+                    path.move(to: CGPoint(x: 0, y: y))
+                    path.addLine(to: CGPoint(x: geo.size.width, y: y))
+                }
+            }
+            .stroke(Color.white.opacity(0.26), lineWidth: 0.8)
+        }
+    }
+}
+
+struct HorizonLevel: View {
+    let roll: Double
+
+    private var degrees: Double {
+        roll * 180 / .pi
+    }
+
+    private var isLevel: Bool {
+        abs(degrees) < 1.0
+    }
+
+    var body: some View {
+        VStack(spacing: 8) {
+            ZStack {
+                Rectangle()
+                    .fill(Color.white.opacity(0.28))
+                    .frame(width: 96, height: 1)
+
+                Rectangle()
+                    .fill(isLevel ? Color.green : Color.yellow)
+                    .frame(width: 68, height: 2)
+                    .rotationEffect(.radians(-roll))
+                    .shadow(color: .black.opacity(0.45), radius: 3)
+            }
+
+            Text(String(format: "%+.0f°", degrees))
+                .font(.system(size: 11, weight: .bold, design: .monospaced))
+                .foregroundColor(isLevel ? .green : .white)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .background(Color.black.opacity(0.48), in: Capsule())
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+    }
+}
+
+struct CountdownOverlay: View {
+    let value: Int
+
+    var body: some View {
+        Text("\(value)")
+            .font(.system(size: 88, weight: .bold, design: .rounded))
+            .foregroundColor(.white)
+            .shadow(color: .black.opacity(0.55), radius: 12)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+    }
+}
+
+final class LevelManager: ObservableObject {
+    @Published var roll: Double = 0
+
+    private let motionManager = CMMotionManager()
+
+    func start() {
+        guard motionManager.isDeviceMotionAvailable else { return }
+        motionManager.deviceMotionUpdateInterval = 1.0 / 30.0
+        motionManager.startDeviceMotionUpdates(to: .main) { [weak self] motion, _ in
+            guard let motion else { return }
+            self?.roll = motion.attitude.roll
+        }
+    }
+
+    func stop() {
+        motionManager.stopDeviceMotionUpdates()
     }
 }
 

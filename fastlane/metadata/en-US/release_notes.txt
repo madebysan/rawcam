@@ -1,1 +1,1 @@
-Adds a compact controls drawer for manual exposure, white balance, and AF/AE unlock. Capture raw DNG files with no AI postprocessing, plus RAW+JPG comparison mode, flash control, front/back camera, and live histogram.
+Adds capture aids from paid pro camera apps: grid, horizon level, clipping warnings, self-timer, EV compensation, and separate focus/exposure targeting. Manual exposure and white balance controls stay in the compact drawer above the shutter.

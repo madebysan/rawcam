@@ -28,10 +28,14 @@ RawCam is a minimal iOS camera that saves only the sensor's raw DNG. Tap the shu
 - **RAW+JPG mode.** Captures both a clean DNG and an Apple-processed JPEG simultaneously (saved as two photos). Useful for comparing what the stock pipeline does to a shot.
 - **Tap to focus.** Tap anywhere on preview. Long-press to lock AF + AE.
 - **Manual exposure.** Toggle manual mode for ISO and shutter speed.
+- **EV compensation.** Adjust auto exposure without switching to full manual.
+- **Separate metering.** Switch tap mode between focus and exposure targeting.
 - **White balance controls.** Use auto, daylight, cloudy, tungsten, fluorescent, or Kelvin.
+- **Grid + level.** Optional composition grid and horizon level.
+- **Self-timer.** Off / 3s / 10s.
 - **Flash toggle.** Off / on / auto.
 - **Front / back camera** switch.
-- **Live histogram.** 8-bar readout, shadows to highlights.
+- **Live histogram.** 8-bar readout with highlight/shadow clipping warnings.
 
 ## Why not just use the iOS Camera app?
 

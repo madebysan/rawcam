@@ -68,6 +68,9 @@ class CameraManager: NSObject, ObservableObject {
     @Published var shutterSpeed: Double = 1.0 / 60.0
     @Published var isManualExposure = false
     @Published var isExposureLocked = false
+    @Published var exposureBias: Float = 0
+    @Published var minExposureBias: Float = -2
+    @Published var maxExposureBias: Float = 2
     @Published var minISO: Float = 50
     @Published var maxISO: Float = 1600
     @Published var minShutter: Double = 1.0 / 8000.0
@@ -80,11 +83,15 @@ class CameraManager: NSObject, ObservableObject {
 
     // Focus
     @Published var focusPoint: CGPoint?
+    @Published var exposurePoint: CGPoint?
     @Published var isFocusLocked = false
     @Published var showFocusIndicator = false
+    @Published var showExposureIndicator = false
 
     // Histogram
     @Published var histogramData: [UInt]  = Array(repeating: 0, count: 256)
+    @Published var isShadowClipping = false
+    @Published var isHighlightClipping = false
 
     private var isConfigured = false
     private let histogramQueue = DispatchQueue(label: "com.rawcam.histogram", qos: .utility)
@@ -158,6 +165,9 @@ class CameraManager: NSObject, ObservableObject {
         maxISO = device.activeFormat.maxISO
         minShutter = CMTimeGetSeconds(device.activeFormat.minExposureDuration)
         maxShutter = CMTimeGetSeconds(device.activeFormat.maxExposureDuration)
+        minExposureBias = device.minExposureTargetBias
+        maxExposureBias = device.maxExposureTargetBias
+        exposureBias = device.exposureTargetBias.clamped(to: minExposureBias...maxExposureBias)
         iso = iso.clamped(to: minISO...maxISO)
     }
 
@@ -180,6 +190,9 @@ class CameraManager: NSObject, ObservableObject {
         isExposureLocked = false
         isManualWhiteBalance = false
         isFocusLocked = false
+        exposurePoint = nil
+        showExposureIndicator = false
+        exposureBias = 0
         whiteBalancePreset = .auto
     }
 
@@ -241,8 +254,25 @@ class CameraManager: NSObject, ObservableObject {
                 isExposureLocked = false
             }
             device.unlockForConfiguration()
+            if !isManualExposure {
+                setExposureBias(exposureBias)
+            }
         } catch {
             errorMessage = "Cannot toggle exposure: \(error.localizedDescription)"
+        }
+    }
+
+    func setExposureBias(_ value: Float) {
+        guard let device = currentDevice, !isManualExposure else { return }
+        let clampedBias = value.clamped(to: minExposureBias...maxExposureBias)
+
+        do {
+            try device.lockForConfiguration()
+            device.setExposureTargetBias(clampedBias)
+            device.unlockForConfiguration()
+            exposureBias = clampedBias
+        } catch {
+            errorMessage = "Cannot set EV: \(error.localizedDescription)"
         }
     }
 
@@ -318,7 +348,7 @@ class CameraManager: NSObject, ObservableObject {
             try device.lockForConfiguration()
             device.focusPointOfInterest = devicePoint
             device.focusMode = .autoFocus
-            if device.isExposurePointOfInterestSupported && !isExposureLocked && !isManualExposure {
+            if exposurePoint == nil && device.isExposurePointOfInterestSupported && !isExposureLocked && !isManualExposure {
                 device.exposurePointOfInterest = devicePoint
                 device.exposureMode = .autoExpose
             }
@@ -333,6 +363,25 @@ class CameraManager: NSObject, ObservableObject {
             }
         } catch {
             errorMessage = "Cannot set focus: \(error.localizedDescription)"
+        }
+    }
+
+    func meterExposure(at point: CGPoint, in viewSize: CGSize) {
+        guard let device = currentDevice, device.isExposurePointOfInterestSupported, !isManualExposure else { return }
+
+        let devicePoint = CGPoint(x: point.y / viewSize.height, y: 1 - point.x / viewSize.width)
+
+        do {
+            try device.lockForConfiguration()
+            device.exposurePointOfInterest = devicePoint
+            device.exposureMode = .autoExpose
+            device.unlockForConfiguration()
+
+            exposurePoint = point
+            showExposureIndicator = true
+            isExposureLocked = false
+        } catch {
+            errorMessage = "Cannot set exposure point: \(error.localizedDescription)"
         }
     }
 
@@ -372,7 +421,9 @@ class CameraManager: NSObject, ObservableObject {
             }
             device.unlockForConfiguration()
             isFocusLocked = false
+            exposurePoint = nil
             showFocusIndicator = false
+            showExposureIndicator = false
         } catch {
             errorMessage = "Cannot unlock focus: \(error.localizedDescription)"
         }
@@ -577,7 +628,25 @@ extension CameraManager: AVCaptureVideoDataOutputSampleBufferDelegate {
 
         DispatchQueue.main.async {
             self.histogramData = histogram
+            self.updateClippingFlags(from: histogram)
         }
+    }
+
+    private func updateClippingFlags(from histogram: [UInt]) {
+        let total = histogram.reduce(UInt(0), +)
+        guard total > 0 else {
+            isShadowClipping = false
+            isHighlightClipping = false
+            return
+        }
+
+        let edgeBinCount = 4
+        let shadowCount = histogram.prefix(edgeBinCount).reduce(UInt(0), +)
+        let highlightCount = histogram.suffix(edgeBinCount).reduce(UInt(0), +)
+        let threshold = Double(total) * 0.01
+
+        isShadowClipping = Double(shadowCount) > threshold
+        isHighlightClipping = Double(highlightCount) > threshold
     }
 }
 
