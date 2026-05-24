@@ -16,6 +16,43 @@ enum CaptureMode: String, CaseIterable {
     }
 }
 
+enum VideoCaptureFormat: String, CaseIterable, Identifiable {
+    case hevc = "HEVC"
+    case hevcHDR = "HDR"
+    case hevcLog = "LOG"
+    case proRes = "PRORES"
+    case proResLog = "PRORES LOG"
+
+    var id: String { rawValue }
+
+    var savedLabel: String {
+        switch self {
+        case .hevc: return "VIDEO HEVC"
+        case .hevcHDR: return "VIDEO HDR"
+        case .hevcLog: return "VIDEO LOG"
+        case .proRes: return "VIDEO PRORES"
+        case .proResLog: return "VIDEO PRORES LOG"
+        }
+    }
+
+    var codec: AVVideoCodecType {
+        switch self {
+        case .hevc, .hevcHDR, .hevcLog:
+            return .hevc
+        case .proRes, .proResLog:
+            return .proRes422
+        }
+    }
+
+    var wantsHDR: Bool {
+        self == .hevcHDR
+    }
+
+    var wantsLog: Bool {
+        self == .hevcLog || self == .proResLog
+    }
+}
+
 enum WhiteBalancePreset: String, CaseIterable {
     case auto = "Auto"
     case daylight = "Daylight"
@@ -87,6 +124,8 @@ class CameraManager: NSObject, ObservableObject {
     @Published var errorMessage: String?
     @Published var isRecordingVideo = false
     @Published var videoElapsedSeconds = 0
+    @Published var availableVideoFormats: [VideoCaptureFormat] = [.hevc]
+    @Published var selectedVideoFormat: VideoCaptureFormat = .hevc
     @Published var isUsingFrontCamera = false
     @Published var rawSupported = false
     @Published var lastCaptureDetails: CaptureDetails?
@@ -184,6 +223,7 @@ class CameraManager: NSObject, ObservableObject {
         session.commitConfiguration()
 
         updateDeviceLimits()
+        refreshAvailableVideoFormats()
 
         #if DEBUG
         VideoCapabilityReporter.saveDebugReport()
@@ -217,6 +257,8 @@ class CameraManager: NSObject, ObservableObject {
         } catch {
             errorMessage = "Cannot access camera: \(error.localizedDescription)"
         }
+
+        refreshAvailableVideoFormats()
     }
 
     private func ensureAudioInputIfAllowed() {
@@ -235,6 +277,49 @@ class CameraManager: NSObject, ObservableObject {
         } catch {
             errorMessage = "Cannot access microphone: \(error.localizedDescription)"
         }
+    }
+
+    private func refreshAvailableVideoFormats() {
+        var formats: [VideoCaptureFormat] = [.hevc]
+
+        let codecTypes = Set(movieOutput.availableVideoCodecTypes)
+        let supportedColorSpaces = Set(currentDevice?.activeFormat.supportedColorSpaces ?? [])
+        let supportsHDR = currentDevice?.activeFormat.isVideoHDRSupported == true
+        var supportsLog = supportedColorSpaces.contains(.appleLog)
+        if #available(iOS 26.0, *) {
+            supportsLog = supportsLog || supportedColorSpaces.contains(.appleLog2)
+        }
+
+        if supportsHDR {
+            formats.append(.hevcHDR)
+        }
+        if supportsLog {
+            formats.append(.hevcLog)
+        }
+        if codecTypes.contains(.proRes422) {
+            formats.append(.proRes)
+            if supportsLog {
+                formats.append(.proResLog)
+            }
+        }
+
+        availableVideoFormats = formats
+        if !formats.contains(selectedVideoFormat) {
+            selectedVideoFormat = .hevc
+        }
+    }
+
+    func cycleVideoFormat() {
+        guard !isRecordingVideo else { return }
+        guard let currentIndex = availableVideoFormats.firstIndex(of: selectedVideoFormat) else {
+            selectedVideoFormat = availableVideoFormats.first ?? .hevc
+            return
+        }
+
+        let nextIndex = availableVideoFormats.index(after: currentIndex)
+        selectedVideoFormat = nextIndex == availableVideoFormats.endIndex
+            ? availableVideoFormats[0]
+            : availableVideoFormats[nextIndex]
     }
 
     private func bestCamera(for position: AVCaptureDevice.Position) -> AVCaptureDevice? {
@@ -743,15 +828,57 @@ class CameraManager: NSObject, ObservableObject {
 
         if let connection = movieOutput.connection(with: .video) {
             connection.videoRotationAngle = isUsingFrontCamera ? 270 : 90
-            if movieOutput.availableVideoCodecTypes.contains(.hevc) {
-                movieOutput.setOutputSettings([AVVideoCodecKey: AVVideoCodecType.hevc], for: connection)
-            }
+            applySelectedVideoFormat(to: connection)
         }
 
         videoElapsedSeconds = 0
         isRecordingVideo = true
         startVideoTimer()
         movieOutput.startRecording(to: fileURL, recordingDelegate: self)
+    }
+
+    private func applySelectedVideoFormat(to connection: AVCaptureConnection) {
+        let format = selectedVideoFormat
+
+        if movieOutput.availableVideoCodecTypes.contains(format.codec) {
+            movieOutput.setOutputSettings([AVVideoCodecKey: format.codec], for: connection)
+        } else if movieOutput.availableVideoCodecTypes.contains(.hevc) {
+            selectedVideoFormat = .hevc
+            movieOutput.setOutputSettings([AVVideoCodecKey: AVVideoCodecType.hevc], for: connection)
+        }
+
+        guard let device = currentDevice else { return }
+
+        do {
+            try device.lockForConfiguration()
+            if format.wantsLog {
+                if #available(iOS 26.0, *) {
+                    setBestAvailableColorSpace([.appleLog2, .appleLog], for: device)
+                } else {
+                    setBestAvailableColorSpace([.appleLog], for: device)
+                }
+            } else if format.wantsHDR {
+                if device.activeFormat.isVideoHDRSupported {
+                    device.automaticallyAdjustsVideoHDREnabled = false
+                    device.isVideoHDREnabled = true
+                }
+                setBestAvailableColorSpace([.HLG_BT2020, .P3_D65], for: device)
+            } else {
+                if device.activeFormat.isVideoHDRSupported {
+                    device.automaticallyAdjustsVideoHDREnabled = false
+                    device.isVideoHDREnabled = false
+                }
+                setBestAvailableColorSpace([.sRGB], for: device)
+            }
+            device.unlockForConfiguration()
+        } catch {
+            errorMessage = "Cannot set video format: \(error.localizedDescription)"
+        }
+    }
+
+    private func setBestAvailableColorSpace(_ candidates: [AVCaptureColorSpace], for device: AVCaptureDevice) {
+        guard let colorSpace = candidates.first(where: { device.activeFormat.supportedColorSpaces.contains($0) }) else { return }
+        device.activeColorSpace = colorSpace
     }
 
     private func stopVideoRecording() {
@@ -871,7 +998,7 @@ class CameraManager: NSObject, ObservableObject {
             } completionHandler: { success, error in
                 DispatchQueue.main.async {
                     if success {
-                        let details = self?.captureDetails(label: "VIDEO HEVC")
+                        let details = self?.captureDetails(label: self?.selectedVideoFormat.savedLabel ?? "VIDEO")
                         self?.lastCaptureDetails = details
                         self?.showSaved(label: "VIDEO")
                         self?.lastThumbnail = self?.latestPreviewImage

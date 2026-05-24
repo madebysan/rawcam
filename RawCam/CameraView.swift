@@ -386,20 +386,33 @@ struct CameraView: View {
     }
 
     private var videoModeBadge: some View {
-        HStack(spacing: 8) {
-            Circle()
-                .fill(camera.isRecordingVideo ? Color.red : Theme.accent)
-                .frame(width: 7, height: 7)
-            Text(camera.isRecordingVideo ? recordingElapsedText : "HEVC")
-                .font(.system(size: 11, weight: .bold, design: .monospaced))
-                .foregroundColor(.white)
-                .tracking(1)
+        Button {
+            hapticMedium.impactOccurred()
+            hapticMedium.prepare()
+            withAnimation(Theme.tapSpring) {
+                camera.cycleVideoFormat()
+            }
+        } label: {
+            HStack(spacing: 8) {
+                Circle()
+                    .fill(camera.isRecordingVideo ? Color.red : Theme.accent)
+                    .frame(width: 7, height: 7)
+                Text(camera.isRecordingVideo ? recordingElapsedText : camera.selectedVideoFormat.rawValue)
+                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                    .foregroundColor(.white)
+                    .tracking(1)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .frame(minHeight: 36)
+            .background(.black.opacity(0.38), in: Capsule())
+            .overlay(Capsule().strokeBorder(Color.white.opacity(0.10), lineWidth: 1))
+            .contentShape(Rectangle())
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .frame(minHeight: 36)
-        .background(.black.opacity(0.38), in: Capsule())
-        .overlay(Capsule().strokeBorder(Color.white.opacity(0.10), lineWidth: 1))
+        .buttonStyle(.plain)
+        .disabled(camera.isRecordingVideo || camera.availableVideoFormats.count <= 1)
     }
 
     private var modeAccent: Color {
@@ -792,10 +805,13 @@ struct CameraView: View {
                 controlChip(
                     icon: FeatureIcon.bracket,
                     title: appCaptureMode == .photo ? "BRKT" : "VID",
-                    value: appCaptureMode == .photo ? (bracketEnabled ? "3 RAW" : "OFF") : "HEVC",
+                    value: appCaptureMode == .photo ? (bracketEnabled ? "3 RAW" : "OFF") : camera.selectedVideoFormat.rawValue,
                     isActive: appCaptureMode == .photo ? bracketEnabled : camera.isRecordingVideo,
                     action: {
-                        guard appCaptureMode == .photo else { return }
+                        guard appCaptureMode == .photo else {
+                            camera.cycleVideoFormat()
+                            return
+                        }
                         bracketEnabled.toggle()
                     }
                 )

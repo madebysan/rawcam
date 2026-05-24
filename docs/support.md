@@ -99,7 +99,7 @@ It opens the RawCam roll inside the app. The roll shows captures made in RawCam 
 
 ### Can I shoot video with RawCam?
 
-Yes. The first video mode records simple HEVC clips to Photos. It reuses RawCam's preview, lens, focus, exposure, white balance, grid, level, histogram, and zebra tools where they make sense. Advanced formats like Log, ProRes, and ProRes RAW are not enabled yet.
+Yes. The first video mode records clips to Photos. The video format control starts with HEVC and only shows HDR, Log, or ProRes options when the current device/session exposes them. ProRes RAW is not enabled yet.
 
 ## Reporting bugs
 
