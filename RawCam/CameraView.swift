@@ -259,6 +259,8 @@ struct CameraView: View {
                     .font(.system(size: 9, weight: .bold, design: .monospaced))
                     .foregroundColor(.black)
                     .tracking(0.8)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 3)
                     .background(Theme.accent, in: Capsule())
@@ -728,26 +730,16 @@ struct CameraView: View {
                 )
 
                 controlChip(
-                    icon: "info.square",
-                    title: "LAST",
-                    value: camera.lastCaptureDetails == nil ? "NONE" : "VIEW",
-                    isActive: showLastDetails,
-                    action: {
-                        if camera.lastCaptureDetails == nil {
-                            camera.errorMessage = "No capture details yet"
-                        } else {
-                            showLastDetails = true
-                        }
-                    }
+                    icon: "speaker.wave.2.fill",
+                    title: "VOLUME",
+                    value: "SHUTTER",
+                    isActive: true,
+                    action: { camera.errorMessage = "Press a volume button to shoot" }
                 )
 
-                controlChip(
-                    icon: "speaker.wave.2",
-                    title: "VOL",
-                    value: "SHUT",
-                    isActive: false,
-                    action: { camera.errorMessage = "Volume buttons trigger shutter" }
-                )
+                Color.clear
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 46)
             }
         }
         .padding(.horizontal, 10)
