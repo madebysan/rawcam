@@ -1684,9 +1684,12 @@ struct HelpSheet: View {
                     // Credit
                     HStack {
                         Spacer()
-                        Text("Made by santiagoalonso.com")
-                            .font(.system(size: 12, weight: .medium, design: .monospaced))
-                            .foregroundColor(Color(white: 0.35))
+                        Link(destination: URL(string: "https://santiagoalonso.com")!) {
+                            Text("Made by santiagoalonso.com")
+                                .font(.system(size: 12, weight: .medium, design: .monospaced))
+                                .foregroundColor(Color(white: 0.45))
+                                .underline()
+                        }
                         Spacer()
                     }
                     .padding(.top, 8)
