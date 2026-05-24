@@ -18,12 +18,18 @@
 - `2b3c888` Separate secondary controls
 - `8925765` Add status, steady, aspect, and audio controls
 - `991488e` Place video audio control beside format
+- `fa7e32a` Save RawCam video session
+- `0149df9` Prepare RawCam video build for App Review
 
 ## Verification
 - Generic iOS builds passed after the final UI changes.
 - Connected iPhone Debug build passed.
 - App installed on the connected iPhone.
 - App launched on the connected iPhone.
+- `fastlane ios build` passed and produced the release IPA.
+- `fastlane ios upload` uploaded RawCam `1.1 (3)` to App Store Connect.
+- `fastlane ios release` submitted RawCam `1.1 (3)` for review after canceling the stale build 2 review submission.
+- App Store Connect verification showed v1.1 build 3 in `WAITING_FOR_REVIEW` with automatic release enabled.
 
 ## Known limits
 - Exact Photos asset handoff from the RawCam roll is not reliable with the current add-only Photos permission model. The app can open Photos, but iOS does not guarantee focus on the tapped asset.
@@ -32,6 +38,8 @@
 - `AUDIO` must be set before recording starts.
 
 ## Next QA pass
+- Monitor App Store Connect for v1.1 build 3 review status and crash reports after approval.
+- After approval, publish the matching GitHub update: push commits, refresh README/screenshots, and decide whether to tag or create a GitHub release.
 - Test RawCam roll empty state, image thumbnails, RAW+JPG thumbnails, bracket entries, video thumbnails, and image/video Photos handoff.
 - Collect `Debug/video-capabilities.txt` from app support.
 - Test video recording on device: microphone prompt, silent fallback, start/stop, elapsed timer, Photos save, format cycling, roll entry, lens switching before recording, backgrounding, audio interruptions, low storage, thermal/system pressure, and returning to photo capture.

@@ -18,8 +18,9 @@ Updated every session via `/save-session`.
 ### Build
 - Built, installed, and launched the latest Debug build on the connected iPhone.
 - Prepared App Store metadata and reviewer notes for the video-enabled build and bumped the build number to `1.1 (3)`.
+- Submitted RawCam v1.1 build 3 to App Store Review with automatic release after approval.
 
-### Status: local QA build ready
+### Status: v1.1 build 3 waiting for App Review
 
 ---
 
