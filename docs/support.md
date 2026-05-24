@@ -1,6 +1,6 @@
 # RawCam Support
 
-A minimal camera that saves only the sensor's raw DNG. No AI postprocessing.
+A minimal camera for sensor-pure DNG photos and clean video capture. No AI postprocessing.
 
 ## Contact
 

@@ -1,4 +1,4 @@
-RawCam is a minimal camera that saves only the sensor's raw DNG file. No AI postprocessing, no Smart HDR, no tone mapping, no noise reduction. Tap the shutter, open the photo in your favorite RAW editor, and process it yourself.
+RawCam is a minimal camera for sensor-pure DNG photos and clean video capture. No AI postprocessing, no Smart HDR, no tone mapping, no noise reduction. Shoot RAW, open the photo in your favorite RAW editor, and process it yourself.
 
 WHY RAW
 
@@ -10,6 +10,7 @@ WHAT YOU GET
 
 • RAW mode — saves a single 12MP DNG with zero processing
 • RAW+JPG mode — saves both a clean DNG and a processed JPEG simultaneously, useful for comparison
+• Video mode — records HEVC video to Photos, with extra formats shown only when the current device supports them
 • Tap to focus anywhere on the preview
 • Long-press to lock focus
 • Manual exposure controls for ISO and shutter speed
@@ -18,9 +19,12 @@ WHAT YOU GET
 • AF/AE lock from the tools grid
 • White balance controls with presets and Kelvin adjustment
 • Lens selector with RAW availability
+• Pinch-to-zoom and quick lens zoom selection
 • Optional grid, horizon level, and self-timer
+• Optional aspect guides and steadier photo capture
 • Volume-button shutter
 • Three-shot RAW exposure bracketing
+• RawCam roll for recent in-app photos and videos
 • Last-shot details for lens, ISO, shutter, EV, white balance, and clipping
 • App Shortcut for Shortcuts, Siri, Spotlight, and Action Button launch
 • Flash with off, on, and auto modes
@@ -31,7 +35,7 @@ WHAT YOU GET
 
 PRIVACY
 
-RawCam doesn't collect anything. There's no account, no login, no analytics, no advertising, no third-party tracking, and no server. The app makes zero network requests. Photos save directly to your photo library and never leave your device.
+RawCam doesn't collect anything. There's no account, no login, no analytics, no advertising, no third-party tracking, and no server. The app makes zero network requests. Photos and videos save directly to your photo library and never leave your device.
 
 ABOUT THE 12 MEGAPIXEL CAP
 

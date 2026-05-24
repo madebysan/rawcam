@@ -2,7 +2,7 @@
 
 <h1>RawCam</h1>
 
-<p>A minimal iOS camera. Saves only the sensor's raw DNG.</p>
+<p>A minimal iOS camera for sensor-pure DNG photos and clean video capture.</p>
 
 <p><strong>v1.1</strong> · iOS 17+</p>
 
@@ -18,7 +18,7 @@
 
 ![RawCam interface, info panel, and a side-by-side comparison of the same scene captured with RawCam and the iOS Camera app](assets/screenshot.png)
 
-RawCam is a minimal iOS camera that saves only the sensor's raw DNG. Tap the shutter, open the file in Lightroom or any RAW editor, and process it yourself.
+RawCam is a minimal iOS camera for sensor-pure DNG photos and clean video capture. Shoot RAW, open the DNG in Lightroom or any RAW editor, and process it yourself.
 
 ## What it does
 

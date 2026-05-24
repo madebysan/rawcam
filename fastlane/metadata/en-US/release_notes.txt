@@ -1,1 +1,1 @@
-Adds a redesigned camera control grid with manual exposure, white balance, lens selection, AF/AE lock, self-timer, grid, level, tap metering, RAW bracketing, zebra warnings, last-shot details, volume-button shutter, and an App Shortcut for quick launch.
+Adds video recording, a RawCam media roll, pinch-to-zoom, a lens zoom selector, reset-all controls, photo aspect guides, steadier photo capture, audio toggling for video, and a clearer controls layout.

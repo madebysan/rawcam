@@ -17,6 +17,7 @@ Updated every session via `/save-session`.
 
 ### Build
 - Built, installed, and launched the latest Debug build on the connected iPhone.
+- Prepared App Store metadata and reviewer notes for the video-enabled build and bumped the build number to `1.1 (3)`.
 
 ### Status: local QA build ready
 

@@ -1,1 +1,1 @@
-A minimal camera that saves only the sensor's raw DNG. No Smart HDR, no Deep Fusion, no tone mapping. Just the data, ready for your editor.
+Capture sensor-pure DNG photos and clean HEVC video with manual controls, zebra warnings, pinch zoom, and an in-app RawCam roll. No accounts or tracking.
