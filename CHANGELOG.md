@@ -22,7 +22,7 @@ Updated every session via `/save-session`.
 ### Docs
 - **Feature copy:** updated README, support docs, backlog, and App Store metadata for the new capture controls.
 
-### Status: local build passing
+### Status: v1.1 build 2 uploaded to App Store Connect
 
 ---
 
