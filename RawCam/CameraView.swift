@@ -285,19 +285,6 @@ struct CameraView: View {
                 highlightClipping: camera.isHighlightClipping
             )
             .frame(width: 56, height: 28)
-
-            if camera.isShadowClipping || camera.isHighlightClipping {
-                Text("CLIP")
-                    .font(.system(size: 9, weight: .bold, design: .monospaced))
-                    .foregroundColor(.black)
-                    .tracking(0.8)
-                    .lineLimit(1)
-                    .fixedSize(horizontal: true, vertical: false)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 3)
-                    .background(Theme.accent, in: Capsule())
-                    .shadow(color: Theme.accent.opacity(0.4), radius: 10)
-            }
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 7)
@@ -1271,8 +1258,8 @@ struct BarHistogram: View {
     }
 
     private func barColor(for index: Int) -> Color {
-        if index == 0 && shadowClipping { return .yellow }
-        if index == barCount - 1 && highlightClipping { return .yellow }
+        if index == 0 && shadowClipping { return Theme.accent }
+        if index == barCount - 1 && highlightClipping { return Theme.accent }
         return .white
     }
 }
@@ -1659,7 +1646,7 @@ struct HelpSheet: View {
                         helpCard(
                             icon: FeatureIcon.histogram,
                             title: "HISTOGRAM & ZEBRA",
-                            body: "The histogram shows shadows left and highlights right. CLIP and zebra stripes warn when highlights blow out."
+                            body: "The histogram shows shadows left and highlights right. Orange edge bars and zebra stripes warn when tones clip."
                         )
 
                         helpCard(
