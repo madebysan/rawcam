@@ -1,1 +1,1 @@
-Adds capture aids from paid pro camera apps: grid, horizon level, clipping warnings, self-timer, EV compensation, and separate focus/exposure targeting. Manual exposure and white balance controls stay in the compact drawer above the shutter.
+Adds more capture tools from paid pro camera apps: anti-shake shutter, three-shot RAW bracketing, and a last-shot details panel. Also includes grid, horizon level, clipping warnings, self-timer, EV compensation, and separate focus/exposure targeting.

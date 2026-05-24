@@ -33,6 +33,9 @@ RawCam is a minimal iOS camera that saves only the sensor's raw DNG. Tap the shu
 - **White balance controls.** Use auto, daylight, cloudy, tungsten, fluorescent, or Kelvin.
 - **Grid + level.** Optional composition grid and horizon level.
 - **Self-timer.** Off / 3s / 10s.
+- **Anti-shake shutter.** Waits for the phone to steady before firing.
+- **RAW bracketing.** Captures three RAW frames at different EV values.
+- **Last-shot details.** Shows mode, ISO, shutter, EV, white balance, and clipping.
 - **Flash toggle.** Off / on / auto.
 - **Front / back camera** switch.
 - **Live histogram.** 8-bar readout with highlight/shadow clipping warnings.

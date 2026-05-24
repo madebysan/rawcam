@@ -44,6 +44,10 @@ struct CameraView: View {
     @State private var showLevel = false
     @State private var selfTimerSeconds = 0
     @State private var countdown: Int?
+    @State private var antiShakeEnabled = false
+    @State private var bracketEnabled = false
+    @State private var waitingForSteadyShot = false
+    @State private var showLastDetails = false
 
     // Shutter animation
     @State private var shutterPulse = 0
@@ -100,6 +104,11 @@ struct CameraView: View {
                     .allowsHitTesting(false)
             }
 
+            if waitingForSteadyShot {
+                SteadyShotOverlay(score: level.motionScore)
+                    .allowsHitTesting(false)
+            }
+
             // ── Top bar ──────────────────────────────────────────
             VStack {
                 topBar
@@ -135,6 +144,9 @@ struct CameraView: View {
         }
         .sheet(isPresented: $showHelp) {
             HelpSheet()
+        }
+        .sheet(isPresented: $showLastDetails) {
+            LastCaptureSheet(details: camera.lastCaptureDetails)
         }
     }
 
@@ -465,7 +477,7 @@ struct CameraView: View {
                 // Center — shutter, fixed width keeps it screen-centered
                 ShutterButton(
                     mode: camera.captureMode,
-                    isTakingPhoto: camera.isTakingPhoto || countdown != nil,
+                    isTakingPhoto: camera.isTakingPhoto || countdown != nil || waitingForSteadyShot,
                     pulseCount: $shutterPulse
                 ) {
                     hapticHeavy.impactOccurred()
@@ -578,6 +590,35 @@ struct CameraView: View {
                     action: { tapTarget = tapTarget == .focus ? .meter : .focus }
                 )
             }
+
+            HStack(spacing: 8) {
+                controlChip(
+                    title: "SHAKE",
+                    value: antiShakeEnabled ? "ON" : "OFF",
+                    isActive: antiShakeEnabled,
+                    action: { antiShakeEnabled.toggle() }
+                )
+
+                controlChip(
+                    title: "BRKT",
+                    value: bracketEnabled ? "3 RAW" : "OFF",
+                    isActive: bracketEnabled,
+                    action: { bracketEnabled.toggle() }
+                )
+
+                controlChip(
+                    title: "LAST",
+                    value: camera.lastCaptureDetails == nil ? "NONE" : "VIEW",
+                    isActive: showLastDetails,
+                    action: {
+                        if camera.lastCaptureDetails == nil {
+                            camera.errorMessage = "No capture details yet"
+                        } else {
+                            showLastDetails = true
+                        }
+                    }
+                )
+            }
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
@@ -680,8 +721,7 @@ struct CameraView: View {
         }
 
         guard selfTimerSeconds > 0 else {
-            triggerFlash()
-            camera.capturePhoto()
+            triggerSteadyOrCapture()
             return
         }
 
@@ -691,8 +731,7 @@ struct CameraView: View {
     private func runCountdown(_ value: Int) {
         guard value > 0 else {
             countdown = nil
-            triggerFlash()
-            camera.capturePhoto()
+            triggerSteadyOrCapture()
             return
         }
 
@@ -701,6 +740,35 @@ struct CameraView: View {
             guard countdown == value else { return }
             runCountdown(value - 1)
         }
+    }
+
+    private func triggerSteadyOrCapture() {
+        guard antiShakeEnabled else {
+            performCapture()
+            return
+        }
+
+        waitingForSteadyShot = true
+        waitForSteadyShot(attempt: 0)
+    }
+
+    private func waitForSteadyShot(attempt: Int) {
+        guard waitingForSteadyShot else { return }
+
+        if level.isSteady || attempt >= 20 {
+            waitingForSteadyShot = false
+            performCapture()
+            return
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            waitForSteadyShot(attempt: attempt + 1)
+        }
+    }
+
+    private func performCapture() {
+        triggerFlash()
+        camera.capturePhoto(bracketed: bracketEnabled)
     }
 
     private func triggerFlash() {
@@ -1068,10 +1136,104 @@ struct CountdownOverlay: View {
     }
 }
 
+struct SteadyShotOverlay: View {
+    let score: Double
+
+    var body: some View {
+        VStack(spacing: 10) {
+            ProgressView(value: min(max(1.0 - score * 8, 0), 1))
+                .progressViewStyle(.linear)
+                .tint(.yellow)
+                .frame(width: 130)
+
+            Text("HOLD STEADY")
+                .font(.system(size: 12, weight: .bold, design: .monospaced))
+                .tracking(1.5)
+                .foregroundColor(.black)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 7)
+                .background(Color.yellow, in: Capsule())
+        }
+        .padding(16)
+        .background(Color.black.opacity(0.55), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+    }
+}
+
+struct LastCaptureSheet: View {
+    @Environment(\.dismiss) var dismiss
+    let details: CaptureDetails?
+
+    var body: some View {
+        ZStack {
+            Color(red: 0.05, green: 0.05, blue: 0.05).ignoresSafeArea()
+
+            VStack(alignment: .leading, spacing: 22) {
+                HStack {
+                    Text("LAST CAPTURE")
+                        .font(.system(size: 12, weight: .bold, design: .monospaced))
+                        .foregroundColor(.white)
+                        .tracking(1.8)
+                    Spacer()
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(Color(white: 0.55))
+                            .frame(width: 32, height: 32)
+                            .background(Color(white: 0.15), in: Circle())
+                    }
+                }
+
+                if let details {
+                    VStack(spacing: 10) {
+                        detailRow("MODE", details.mode)
+                        detailRow("ISO", "\(details.iso)")
+                        detailRow("SHUTTER", details.shutter)
+                        detailRow("EV", details.ev)
+                        detailRow("WB", details.whiteBalance)
+                        detailRow("CLIP", details.clipping)
+                    }
+                } else {
+                    Text("No saved capture yet.")
+                        .font(.system(size: 15, weight: .medium, design: .rounded))
+                        .foregroundColor(Color(white: 0.7))
+                }
+
+                Spacer()
+            }
+            .padding(22)
+        }
+        .preferredColorScheme(.dark)
+    }
+
+    private func detailRow(_ label: String, _ value: String) -> some View {
+        HStack {
+            Text(label)
+                .font(.system(size: 11, weight: .bold, design: .monospaced))
+                .foregroundColor(Color(white: 0.42))
+                .tracking(1.4)
+            Spacer()
+            Text(value)
+                .font(.system(size: 15, weight: .bold, design: .monospaced))
+                .foregroundColor(.white)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background(Color(white: 0.10), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+    }
+}
+
 final class LevelManager: ObservableObject {
     @Published var roll: Double = 0
+    @Published var motionScore: Double = 1
 
     private let motionManager = CMMotionManager()
+
+    var isSteady: Bool {
+        motionScore < 0.08
+    }
 
     func start() {
         guard motionManager.isDeviceMotionAvailable else { return }
@@ -1079,6 +1241,12 @@ final class LevelManager: ObservableObject {
         motionManager.startDeviceMotionUpdates(to: .main) { [weak self] motion, _ in
             guard let motion else { return }
             self?.roll = motion.attitude.roll
+
+            let rotation = motion.rotationRate
+            let acceleration = motion.userAcceleration
+            let rotationMagnitude = abs(rotation.x) + abs(rotation.y) + abs(rotation.z)
+            let accelerationMagnitude = abs(acceleration.x) + abs(acceleration.y) + abs(acceleration.z)
+            self?.motionScore = rotationMagnitude * 0.22 + accelerationMagnitude
         }
     }
 

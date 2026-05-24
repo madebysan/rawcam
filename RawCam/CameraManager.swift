@@ -44,6 +44,15 @@ enum WhiteBalancePreset: String, CaseIterable {
     }
 }
 
+struct CaptureDetails {
+    let mode: String
+    let iso: Int
+    let shutter: String
+    let ev: String
+    let whiteBalance: String
+    let clipping: String
+}
+
 class CameraManager: NSObject, ObservableObject {
     let session = AVCaptureSession()
     private let photoOutput = AVCapturePhotoOutput()
@@ -59,6 +68,7 @@ class CameraManager: NSObject, ObservableObject {
     @Published var errorMessage: String?
     @Published var isUsingFrontCamera = false
     @Published var rawSupported = false
+    @Published var lastCaptureDetails: CaptureDetails?
 
     // Capture mode
     @Published var captureMode: CaptureMode = .raw
@@ -102,6 +112,13 @@ class CameraManager: NSObject, ObservableObject {
     private var coverageProcessedData: Data?
     private var coverageExpectedCount = 0
     private var coverageReceivedCount = 0
+
+    // Bracketing
+    private let bracketOffsets: [Float] = [-1, 0, 1]
+    private var isBracketing = false
+    private var bracketIndex = 0
+    private var bracketOriginalBias: Float = 0
+    private var bracketSavedCount = 0
 
     func configure() {
         guard !isConfigured else { return }
@@ -431,8 +448,13 @@ class CameraManager: NSObject, ObservableObject {
 
     // MARK: - Capture
 
-    func capturePhoto() {
+    func capturePhoto(bracketed: Bool = false) {
         guard !isTakingPhoto else { return }
+        if bracketed {
+            captureBracket()
+            return
+        }
+
         isTakingPhoto = true
 
         switch captureMode {
@@ -440,6 +462,49 @@ class CameraManager: NSObject, ObservableObject {
             captureRAW()
         case .coverage:
             captureCoverage()
+        }
+    }
+
+    private func captureBracket() {
+        guard captureMode == .raw else {
+            errorMessage = "Bracketing is RAW only"
+            return
+        }
+        guard !isManualExposure else {
+            errorMessage = "Bracketing needs auto exposure"
+            return
+        }
+        guard rawSupported, photoOutput.availableRawPhotoPixelFormatTypes.first != nil else {
+            errorMessage = "RAW not supported on this camera"
+            return
+        }
+
+        isTakingPhoto = true
+        isBracketing = true
+        bracketIndex = 0
+        bracketSavedCount = 0
+        bracketOriginalBias = exposureBias
+        captureNextBracket()
+    }
+
+    private func captureNextBracket() {
+        guard isBracketing else { return }
+
+        guard bracketIndex < bracketOffsets.count else {
+            isBracketing = false
+            setExposureBias(bracketOriginalBias)
+            showSaved(label: "BRACKET")
+            lastCaptureDetails = captureDetails(label: "BRACKET x3")
+            isTakingPhoto = false
+            return
+        }
+
+        let targetBias = (bracketOriginalBias + bracketOffsets[bracketIndex])
+            .clamped(to: minExposureBias...maxExposureBias)
+        setExposureBias(targetBias)
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) { [weak self] in
+            self?.captureRAW()
         }
     }
 
@@ -484,6 +549,7 @@ class CameraManager: NSObject, ObservableObject {
             guard status == .authorized else {
                 DispatchQueue.main.async {
                     self?.errorMessage = "Photo library access denied"
+                    self?.isBracketing = false
                     self?.isTakingPhoto = false
                 }
                 return
@@ -494,13 +560,23 @@ class CameraManager: NSObject, ObservableObject {
                 request.addResource(with: resourceType, data: data, options: PHAssetResourceCreationOptions())
             } completionHandler: { success, error in
                 DispatchQueue.main.async {
-                    self?.isTakingPhoto = false
                     if success {
+                        if self?.isBracketing == true {
+                            self?.bracketSavedCount += 1
+                            self?.bracketIndex += 1
+                            self?.captureNextBracket()
+                            return
+                        }
+
+                        self?.isTakingPhoto = false
+                        self?.lastCaptureDetails = self?.captureDetails(label: self?.captureMode.rawValue ?? "")
                         self?.showSaved(label: self?.captureMode.rawValue ?? "")
                         if let image = UIImage(data: data) {
                             self?.lastThumbnail = image
                         }
                     } else {
+                        self?.isBracketing = false
+                        self?.isTakingPhoto = false
                         self?.errorMessage = "Failed to save: \(error?.localizedDescription ?? "Unknown error")"
                     }
                 }
@@ -529,6 +605,7 @@ class CameraManager: NSObject, ObservableObject {
                 DispatchQueue.main.async {
                     self?.isTakingPhoto = false
                     if success {
+                        self?.lastCaptureDetails = self?.captureDetails(label: "RAW+JPG")
                         self?.showSaved(label: "RAW+JPG")
                         if let image = UIImage(data: processedData) {
                             self?.lastThumbnail = image
@@ -548,6 +625,37 @@ class CameraManager: NSObject, ObservableObject {
             self?.showSavedConfirmation = false
         }
     }
+
+    private func captureDetails(label: String) -> CaptureDetails {
+        let actualISO = currentDevice?.iso ?? iso
+        let actualShutter = currentDevice.map { CMTimeGetSeconds($0.exposureDuration) } ?? shutterSpeed
+
+        let shutterText: String
+        if actualShutter >= 1 {
+            shutterText = String(format: "%.1fs", actualShutter)
+        } else {
+            shutterText = "1/\(Int(round(1.0 / actualShutter)))"
+        }
+
+        let evText = abs(exposureBias) < 0.05 ? "0.0" : String(format: "%+.1f", exposureBias)
+        let wbText = isManualWhiteBalance ? "\(Int(kelvin))K" : "AUTO"
+        let clippingText: String
+        switch (isShadowClipping, isHighlightClipping) {
+        case (true, true): clippingText = "SHADOW + HIGHLIGHT"
+        case (true, false): clippingText = "SHADOW"
+        case (false, true): clippingText = "HIGHLIGHT"
+        case (false, false): clippingText = "NONE"
+        }
+
+        return CaptureDetails(
+            mode: label,
+            iso: Int(actualISO),
+            shutter: shutterText,
+            ev: evText,
+            whiteBalance: wbText,
+            clipping: clippingText
+        )
+    }
 }
 
 // MARK: - Photo Delegate
@@ -564,6 +672,8 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
 
         guard let data = photo.fileDataRepresentation() else {
             DispatchQueue.main.async {
+                self.isBracketing = false
+                self.setExposureBias(self.bracketOriginalBias)
                 self.isTakingPhoto = false
             }
             return

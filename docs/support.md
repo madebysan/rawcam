@@ -45,6 +45,14 @@ The `TAP` control switches what a preview tap does. `FOCUS` sets focus. `METER` 
 
 `GRID` adds a rule-of-thirds overlay. `LEVEL` shows a horizon indicator in the middle of the preview. `TIMER` cycles between off, 3 seconds, and 10 seconds.
 
+### What are SHAKE, BRKT, and LAST?
+
+`SHAKE` waits until the phone is steadier before taking the shot. If the phone does not settle quickly, RawCam still fires after a short wait.
+
+`BRKT` captures three RAW photos at different EV values: one darker, one normal, one brighter. It only works in RAW mode with auto exposure.
+
+`LAST` shows the settings from the last saved capture: mode, ISO, shutter, EV, white balance, and whether the live histogram was clipping.
+
 ### Why is the resolution 12 megapixels and not 48?
 
 Apple caps third-party RAW capture at 12MP on iPhone. The 48MP full sensor readout is reserved for Apple's own camera pipeline. Every third-party camera app hits the same ceiling — that's an iPhone hardware/software limitation, not a RawCam limitation.

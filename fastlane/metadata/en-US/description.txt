@@ -17,6 +17,9 @@ WHAT YOU GET
 • Separate focus and exposure targeting
 • White balance controls with presets and Kelvin adjustment
 • Optional grid, horizon level, and self-timer
+• Anti-shake shutter that waits for steadier hands
+• Three-shot RAW exposure bracketing
+• Last-shot details for ISO, shutter, EV, white balance, and clipping
 • Flash with off, on, and auto modes
 • Front and back camera switch
 • Live histogram with highlight and shadow clipping warnings
