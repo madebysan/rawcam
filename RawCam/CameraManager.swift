@@ -115,7 +115,9 @@ class CameraManager: NSObject, ObservableObject {
 
     private var isConfigured = false
     private let histogramQueue = DispatchQueue(label: "com.rawcam.histogram", qos: .utility)
+    private let imageContext = CIContext()
     private var frameCounter = 0
+    private var latestPreviewImage: UIImage?
 
     // Coverage mode storage
     private var coverageRAWData: Data?
@@ -578,6 +580,7 @@ class CameraManager: NSObject, ObservableObject {
             finishBracket(restoreBias: true)
             showSaved(label: "BRACKET")
             lastCaptureDetails = captureDetails(label: "BRACKET x3")
+            lastThumbnail = latestPreviewImage
             return
         }
 
@@ -652,6 +655,7 @@ class CameraManager: NSObject, ObservableObject {
                         self?.isTakingPhoto = false
                         self?.lastCaptureDetails = self?.captureDetails(label: self?.captureMode.rawValue ?? "")
                         self?.showSaved(label: self?.captureMode.rawValue ?? "")
+                        self?.lastThumbnail = self?.latestPreviewImage
                     } else {
                         self?.finishBracket(restoreBias: true)
                         self?.errorMessage = "Failed to save: \(error?.localizedDescription ?? "Unknown error")"
@@ -800,6 +804,10 @@ extension CameraManager: AVCaptureVideoDataOutputSampleBufferDelegate {
 
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
 
+        if latestPreviewImage == nil || frameCounter % 18 == 0 {
+            updateLatestPreviewImage(from: pixelBuffer)
+        }
+
         CVPixelBufferLockBaseAddress(pixelBuffer, .readOnly)
         defer { CVPixelBufferUnlockBaseAddress(pixelBuffer, .readOnly) }
 
@@ -829,6 +837,23 @@ extension CameraManager: AVCaptureVideoDataOutputSampleBufferDelegate {
         DispatchQueue.main.async {
             self.histogramData = histogram
             self.updateClippingFlags(from: histogram)
+        }
+    }
+
+    private func updateLatestPreviewImage(from pixelBuffer: CVPixelBuffer) {
+        let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
+        let sourceExtent = ciImage.extent
+        let maxDimension = max(sourceExtent.width, sourceExtent.height)
+        let scale = 900 / maxDimension
+        let scaledImage = ciImage.transformed(by: CGAffineTransform(scaleX: scale, y: scale))
+
+        guard let cgImage = imageContext.createCGImage(scaledImage, from: scaledImage.extent) else { return }
+
+        let orientation: UIImage.Orientation = isUsingFrontCamera ? .leftMirrored : .right
+        let image = UIImage(cgImage: cgImage, scale: 1, orientation: orientation)
+
+        DispatchQueue.main.async {
+            self.latestPreviewImage = image
         }
     }
 
