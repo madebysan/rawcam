@@ -36,6 +36,11 @@ private enum FeatureIcon {
     static let shutterShortcuts = "button.programmable"
 }
 
+enum AppCaptureMode: String, CaseIterable {
+    case photo = "PHOTO"
+    case video = "VIDEO"
+}
+
 private extension Image {
     func bottomUtilityIcon() -> some View {
         self
@@ -88,6 +93,7 @@ struct CameraView: View {
     @AppStorage("selfTimerSeconds") private var selfTimerSeconds = 0
     @AppStorage("bracketEnabled") private var bracketEnabled = false
     @AppStorage("captureMode") private var persistedCaptureMode = CaptureMode.raw.rawValue
+    @AppStorage("appCaptureMode") private var persistedAppCaptureMode = AppCaptureMode.photo.rawValue
     @State private var controlsExpanded = false
     @State private var countdown: Int?
     @State private var showLastDetails = false
@@ -103,6 +109,11 @@ struct CameraView: View {
     private var tapTarget: TapTarget {
         get { tapTargetRaw == "meter" ? .meter : .focus }
         nonmutating set { tapTargetRaw = newValue == .meter ? "meter" : "focus" }
+    }
+
+    private var appCaptureMode: AppCaptureMode {
+        get { AppCaptureMode(rawValue: persistedAppCaptureMode) ?? .photo }
+        nonmutating set { persistedAppCaptureMode = newValue.rawValue }
     }
 
     var body: some View {
@@ -260,12 +271,16 @@ struct CameraView: View {
             histogramCluster
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            // Center — mode selector
-            modeBadge
+            // Center — capture + format selector
+            VStack(spacing: 7) {
+                appModeBadge
+                formatBadge
+            }
                 .frame(maxWidth: .infinity, alignment: .center)
 
             // Right — flash
             Button {
+                guard appCaptureMode == .photo else { return }
                 hapticMedium.impactOccurred()
                 hapticMedium.prepare()
                 camera.toggleFlash()
@@ -277,6 +292,7 @@ struct CameraView: View {
                     .frame(width: 44, height: 44)
                     .contentShape(Rectangle())
             }
+            .opacity(appCaptureMode == .photo ? 1 : 0.35)
             .frame(maxWidth: .infinity, alignment: .trailing)
         }
         .padding(.horizontal, 24)
@@ -298,7 +314,48 @@ struct CameraView: View {
         .overlay(Capsule().strokeBorder(Color.white.opacity(0.08), lineWidth: 1))
     }
 
-    private var modeBadge: some View {
+    private var appModeBadge: some View {
+        HStack(spacing: 2) {
+            ForEach(AppCaptureMode.allCases, id: \.self) { mode in
+                Button {
+                    hapticMedium.impactOccurred()
+                    hapticMedium.prepare()
+                    withAnimation(Theme.tapSpring) {
+                        appCaptureMode = mode
+                        if mode == .video {
+                            bracketEnabled = false
+                        }
+                    }
+                } label: {
+                    Text(mode.rawValue)
+                        .font(.system(size: 10, weight: .bold, design: .monospaced))
+                        .foregroundColor(appCaptureMode == mode ? Theme.bg : .white)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 5)
+                        .background(
+                            appCaptureMode == mode ? modeAccent : Color.clear,
+                            in: Capsule()
+                        )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(3)
+        .background(.black.opacity(0.38), in: Capsule())
+        .overlay(Capsule().strokeBorder(Color.white.opacity(0.10), lineWidth: 1))
+    }
+
+    @ViewBuilder
+    private var formatBadge: some View {
+        switch appCaptureMode {
+        case .photo:
+            photoModeBadge
+        case .video:
+            videoModeBadge
+        }
+    }
+
+    private var photoModeBadge: some View {
         Button {
             hapticMedium.impactOccurred()
             hapticMedium.prepare()
@@ -326,6 +383,23 @@ struct CameraView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+    }
+
+    private var videoModeBadge: some View {
+        HStack(spacing: 8) {
+            Circle()
+                .fill(camera.isRecordingVideo ? Color.red : Theme.accent)
+                .frame(width: 7, height: 7)
+            Text(camera.isRecordingVideo ? recordingElapsedText : "HEVC")
+                .font(.system(size: 11, weight: .bold, design: .monospaced))
+                .foregroundColor(.white)
+                .tracking(1)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .frame(minHeight: 36)
+        .background(.black.opacity(0.38), in: Capsule())
+        .overlay(Capsule().strokeBorder(Color.white.opacity(0.10), lineWidth: 1))
     }
 
     private var modeAccent: Color {
@@ -554,8 +628,9 @@ struct CameraView: View {
 
                 // Center — shutter, fixed width keeps it screen-centered
                 ShutterButton(
-                    mode: camera.captureMode,
+                    appMode: appCaptureMode,
                     isTakingPhoto: camera.isTakingPhoto || countdown != nil,
+                    isRecordingVideo: camera.isRecordingVideo,
                     pulseCount: $shutterPulse
                 ) {
                     hapticHeavy.impactOccurred()
@@ -716,10 +791,13 @@ struct CameraView: View {
 
                 controlChip(
                     icon: FeatureIcon.bracket,
-                    title: "BRKT",
-                    value: bracketEnabled ? "3 RAW" : "OFF",
-                    isActive: bracketEnabled,
-                    action: { bracketEnabled.toggle() }
+                    title: appCaptureMode == .photo ? "BRKT" : "VID",
+                    value: appCaptureMode == .photo ? (bracketEnabled ? "3 RAW" : "OFF") : "HEVC",
+                    isActive: appCaptureMode == .photo ? bracketEnabled : camera.isRecordingVideo,
+                    action: {
+                        guard appCaptureMode == .photo else { return }
+                        bracketEnabled.toggle()
+                    }
                 )
             }
         }
@@ -884,6 +962,12 @@ struct CameraView: View {
         selfTimerSeconds == 0 ? "OFF" : "\(selfTimerSeconds)S"
     }
 
+    private var recordingElapsedText: String {
+        let minutes = camera.videoElapsedSeconds / 60
+        let seconds = camera.videoElapsedSeconds % 60
+        return String(format: "%02d:%02d", minutes, seconds)
+    }
+
     private func cycleTimer() {
         switch selfTimerSeconds {
         case 0: selfTimerSeconds = 3
@@ -923,8 +1007,14 @@ struct CameraView: View {
     }
 
     private func performCapture() {
-        triggerFlash()
-        camera.capturePhoto(bracketed: bracketEnabled)
+        switch appCaptureMode {
+        case .photo:
+            triggerFlash()
+            camera.capturePhoto(bracketed: bracketEnabled)
+        case .video:
+            shutterPulse += 1
+            camera.toggleVideoRecording()
+        }
     }
 
     private func triggerFlash() {
@@ -962,12 +1052,15 @@ struct CameraView: View {
 // MARK: - Shutter Button
 
 struct ShutterButton: View {
-    let mode: CaptureMode
+    let appMode: AppCaptureMode
     let isTakingPhoto: Bool
+    let isRecordingVideo: Bool
     @Binding var pulseCount: Int
     let action: () -> Void
 
-    private let accent: Color = Theme.accent
+    private var accent: Color {
+        appMode == .video ? .red : Theme.accent
+    }
 
     var body: some View {
         ZStack {
@@ -994,26 +1087,36 @@ struct ShutterButton: View {
                 .strokeBorder(Color.white.opacity(0.22), lineWidth: 7)
                 .frame(width: 76, height: 76)
 
-            // Button body
-            Circle()
-                .fill(
-                    RadialGradient(
-                        colors: [Color.white, accent.opacity(0.96), accent.opacity(0.82)],
-                        center: .topLeading,
-                        startRadius: 4,
-                        endRadius: 46
+            if appMode == .video {
+                RoundedRectangle(cornerRadius: isRecordingVideo ? 12 : 28, style: .continuous)
+                    .fill(isRecordingVideo ? Color.red : Color.white)
+                    .frame(width: isRecordingVideo ? 44 : 58, height: isRecordingVideo ? 44 : 58)
+                    .shadow(color: accent.opacity(0.45), radius: 14)
+                    .shadow(color: .black.opacity(0.4), radius: 4, y: 3)
+                    .scaleEffect(isTakingPhoto ? 0.87 : 1.0)
+                    .animation(.spring(response: 0.2, dampingFraction: 0.55), value: isTakingPhoto)
+                    .animation(.spring(response: 0.22, dampingFraction: 0.75), value: isRecordingVideo)
+            } else {
+                Circle()
+                    .fill(
+                        RadialGradient(
+                            colors: [Color.white, accent.opacity(0.96), accent.opacity(0.82)],
+                            center: .topLeading,
+                            startRadius: 4,
+                            endRadius: 46
+                        )
                     )
-                )
-                .frame(width: 68, height: 68)
-                .shadow(color: accent.opacity(0.45), radius: 14)
-                .shadow(color: .black.opacity(0.4), radius: 4, y: 3)
-                .scaleEffect(isTakingPhoto ? 0.87 : 1.0)
-                .animation(.spring(response: 0.2, dampingFraction: 0.55), value: isTakingPhoto)
+                    .frame(width: 68, height: 68)
+                    .shadow(color: accent.opacity(0.45), radius: 14)
+                    .shadow(color: .black.opacity(0.4), radius: 4, y: 3)
+                    .scaleEffect(isTakingPhoto ? 0.87 : 1.0)
+                    .animation(.spring(response: 0.2, dampingFraction: 0.55), value: isTakingPhoto)
+            }
 
         }
         .frame(width: 88, height: 88)
         .onTapGesture { action() }
-        .disabled(isTakingPhoto)
+        .disabled(isTakingPhoto && !isRecordingVideo)
     }
 }
 

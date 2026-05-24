@@ -20,7 +20,7 @@ Apple's Photos app can preview DNGs but won't show their full dynamic range. Ope
 
 ### Where do my photos save?
 
-To your iPhone's photo library, the same place the regular Camera app saves to. Photos are stored as DNG files. In RAW+JPG mode, RawCam saves both a DNG and a JPEG as two separate photos.
+To your iPhone's photo library, the same place the regular Camera app saves to. Photos are stored as DNG files. In RAW+JPG mode, RawCam saves both a DNG and a JPEG as two separate photos. Videos are saved as HEVC movie files.
 
 ### What's the difference between RAW and RAW+JPG mode?
 
@@ -99,7 +99,7 @@ It opens the RawCam roll inside the app. The roll shows captures made in RawCam 
 
 ### Can I shoot video with RawCam?
 
-Not in v1. RawCam is photos only. Video may come later.
+Yes. The first video mode records simple HEVC clips to Photos. It reuses RawCam's preview, lens, focus, exposure, white balance, grid, level, histogram, and zebra tools where they make sense. Advanced formats like Log, ProRes, and ProRes RAW are not enabled yet.
 
 ## Reporting bugs
 

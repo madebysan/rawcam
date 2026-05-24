@@ -1,28 +1,30 @@
 # RawCam Privacy Policy
 
-Last updated: April 30, 2026
+Last updated: May 24, 2026
 
 ## The short version
 
-RawCam doesn't collect, store, or transmit any personal data. There is no account system, no analytics, no advertising, no third-party tracking, and no server. Photos you take are saved directly to your iPhone's photo library and never leave your device unless you share them yourself.
+RawCam doesn't collect, store, or transmit any personal data. There is no account system, no analytics, no advertising, no third-party tracking, and no server. Photos and videos you take are saved directly to your iPhone's photo library and never leave your device unless you share them yourself.
 
 ## What permissions RawCam asks for
 
-**Camera access.** Required so the app can show a preview and capture photos. Without it, RawCam can't function. This is the same permission the standard Camera app requires.
+**Camera access.** Required so the app can show a preview and capture photos or videos. Without it, RawCam can't function. This is the same permission the standard Camera app requires.
 
-**Photo library access (Add only).** Required so the app can save your DNG and JPEG files to your photo library. RawCam requests "add only" access — it cannot read, browse, or modify any photo other than the ones it just captured.
+**Microphone access.** Optional. Required only if you want video clips to include audio. If microphone access is denied, RawCam can still record silent video.
 
-You can review and revoke these permissions any time in iOS Settings → Privacy & Security → Camera / Photos → RawCam.
+**Photo library access (Add only).** Required so the app can save your DNG, JPEG, and video files to your photo library. RawCam requests "add only" access — it cannot read, browse, or modify any photo or video other than the ones it just captured.
+
+You can review and revoke these permissions any time in iOS Settings → Privacy & Security → Camera / Microphone / Photos → RawCam.
 
 ## What data RawCam stores
 
 **On your device only:**
 
-- The photos you take (DNG and optional JPEG)
-- Your last-used capture mode (RAW or RAW+JPG), flash setting, and which camera was active
+- The photos and videos you take (DNG, optional JPEG, and HEVC video)
+- Your last-used capture mode (PHOTO or VIDEO), RAW mode (RAW or RAW+JPG), flash setting, and which camera was active
 - A local RawCam roll index for captures made in RawCam, including small preview thumbnails and capture details such as lens, ISO, shutter speed, exposure value, white balance, and clipping status
 
-That's it. Settings and the RawCam roll index live in iOS's standard local app storage. Photos live in your iPhone's photo library, alongside everything else.
+That's it. Settings and the RawCam roll index live in iOS's standard local app storage. Photos and videos live in your iPhone's photo library, alongside everything else.
 
 ## Network requests RawCam makes
 

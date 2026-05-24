@@ -72,7 +72,11 @@ class CameraManager: NSObject, ObservableObject {
     let session = AVCaptureSession()
     private let photoOutput = AVCapturePhotoOutput()
     private let videoOutput = AVCaptureVideoDataOutput()
+    private let movieOutput = AVCaptureMovieFileOutput()
     private var currentDevice: AVCaptureDevice?
+    private var audioInput: AVCaptureDeviceInput?
+    private var videoRecordingURL: URL?
+    private var videoTimer: Timer?
 
     // State
     @Published var isTakingPhoto = false
@@ -81,6 +85,8 @@ class CameraManager: NSObject, ObservableObject {
     @Published var showSavedConfirmation = false
     @Published var savedModeLabel = ""
     @Published var errorMessage: String?
+    @Published var isRecordingVideo = false
+    @Published var videoElapsedSeconds = 0
     @Published var isUsingFrontCamera = false
     @Published var rawSupported = false
     @Published var lastCaptureDetails: CaptureDetails?
@@ -170,6 +176,11 @@ class CameraManager: NSObject, ObservableObject {
             session.addOutput(videoOutput)
         }
 
+        if session.canAddOutput(movieOutput) {
+            session.addOutput(movieOutput)
+            movieOutput.movieFragmentInterval = .invalid
+        }
+
         session.commitConfiguration()
 
         updateDeviceLimits()
@@ -181,6 +192,8 @@ class CameraManager: NSObject, ObservableObject {
 
     private func addCamera(position: AVCaptureDevice.Position) {
         for input in session.inputs {
+            guard let deviceInput = input as? AVCaptureDeviceInput,
+                  deviceInput.device.hasMediaType(.video) else { continue }
             session.removeInput(input)
         }
 
@@ -203,6 +216,24 @@ class CameraManager: NSObject, ObservableObject {
             }
         } catch {
             errorMessage = "Cannot access camera: \(error.localizedDescription)"
+        }
+    }
+
+    private func ensureAudioInputIfAllowed() {
+        guard audioInput == nil else { return }
+        guard AVCaptureDevice.authorizationStatus(for: .audio) == .authorized else { return }
+        guard let device = AVCaptureDevice.default(for: .audio) else { return }
+
+        do {
+            let input = try AVCaptureDeviceInput(device: device)
+            session.beginConfiguration()
+            if session.canAddInput(input) {
+                session.addInput(input)
+                audioInput = input
+            }
+            session.commitConfiguration()
+        } catch {
+            errorMessage = "Cannot access microphone: \(error.localizedDescription)"
         }
     }
 
@@ -575,6 +606,11 @@ class CameraManager: NSObject, ObservableObject {
 
     func capturePhoto(bracketed: Bool = false) {
         guard !isTakingPhoto else { return }
+        guard !isRecordingVideo else {
+            errorMessage = "Stop recording before taking a photo"
+            return
+        }
+
         if bracketed {
             captureBracket()
             return
@@ -668,6 +704,77 @@ class CameraManager: NSObject, ObservableObject {
         photoOutput.capturePhoto(with: settings, delegate: self)
     }
 
+    // MARK: - Video
+
+    func toggleVideoRecording() {
+        isRecordingVideo ? stopVideoRecording() : requestVideoRecordingStart()
+    }
+
+    private func requestVideoRecordingStart() {
+        guard !isTakingPhoto else { return }
+        guard !movieOutput.isRecording else { return }
+
+        switch AVCaptureDevice.authorizationStatus(for: .audio) {
+        case .authorized:
+            startVideoRecording()
+        case .notDetermined:
+            AVCaptureDevice.requestAccess(for: .audio) { [weak self] granted in
+                DispatchQueue.main.async {
+                    if !granted {
+                        self?.errorMessage = "Recording without microphone audio"
+                    }
+                    self?.startVideoRecording()
+                }
+            }
+        case .denied, .restricted:
+            errorMessage = "Recording without microphone audio"
+            startVideoRecording()
+        @unknown default:
+            startVideoRecording()
+        }
+    }
+
+    private func startVideoRecording() {
+        ensureAudioInputIfAllowed()
+
+        let fileURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("RawCam-\(UUID().uuidString).mov")
+        videoRecordingURL = fileURL
+
+        if let connection = movieOutput.connection(with: .video) {
+            connection.videoRotationAngle = isUsingFrontCamera ? 270 : 90
+            if movieOutput.availableVideoCodecTypes.contains(.hevc) {
+                movieOutput.setOutputSettings([AVVideoCodecKey: AVVideoCodecType.hevc], for: connection)
+            }
+        }
+
+        videoElapsedSeconds = 0
+        isRecordingVideo = true
+        startVideoTimer()
+        movieOutput.startRecording(to: fileURL, recordingDelegate: self)
+    }
+
+    private func stopVideoRecording() {
+        guard movieOutput.isRecording else {
+            finishVideoRecordingState()
+            return
+        }
+        movieOutput.stopRecording()
+    }
+
+    private func startVideoTimer() {
+        videoTimer?.invalidate()
+        videoTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+            self?.videoElapsedSeconds += 1
+        }
+    }
+
+    private func finishVideoRecordingState() {
+        videoTimer?.invalidate()
+        videoTimer = nil
+        isRecordingVideo = false
+    }
+
     // MARK: - Save
 
     private func saveToPhotos(_ data: Data, resourceType: PHAssetResourceType) {
@@ -745,6 +852,45 @@ class CameraManager: NSObject, ObservableObject {
                     }
                 }
             }
+        }
+    }
+
+    private func saveVideoToPhotos(_ fileURL: URL) {
+        PHPhotoLibrary.requestAuthorization(for: .addOnly) { [weak self] status in
+            guard status == .authorized else {
+                DispatchQueue.main.async {
+                    self?.errorMessage = "Photo library access denied"
+                    self?.cleanupVideoFile(fileURL)
+                }
+                return
+            }
+
+            PHPhotoLibrary.shared().performChanges {
+                let request = PHAssetCreationRequest.forAsset()
+                request.addResource(with: .video, fileURL: fileURL, options: PHAssetResourceCreationOptions())
+            } completionHandler: { success, error in
+                DispatchQueue.main.async {
+                    if success {
+                        let details = self?.captureDetails(label: "VIDEO HEVC")
+                        self?.lastCaptureDetails = details
+                        self?.showSaved(label: "VIDEO")
+                        self?.lastThumbnail = self?.latestPreviewImage
+                        if let details {
+                            self?.addMediaRollItem(details: details, thumbnail: self?.latestPreviewImage)
+                        }
+                    } else {
+                        self?.errorMessage = "Failed to save video: \(error?.localizedDescription ?? "Unknown error")"
+                    }
+                    self?.cleanupVideoFile(fileURL)
+                }
+            }
+        }
+    }
+
+    private func cleanupVideoFile(_ fileURL: URL) {
+        try? FileManager.default.removeItem(at: fileURL)
+        if videoRecordingURL == fileURL {
+            videoRecordingURL = nil
         }
     }
 
@@ -900,6 +1046,29 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
             }
         } else {
             saveToPhotos(data, resourceType: .photo)
+        }
+    }
+}
+
+// MARK: - Movie Delegate
+
+extension CameraManager: AVCaptureFileOutputRecordingDelegate {
+    func fileOutput(
+        _ output: AVCaptureFileOutput,
+        didFinishRecordingTo outputFileURL: URL,
+        from connections: [AVCaptureConnection],
+        error: Error?
+    ) {
+        DispatchQueue.main.async {
+            self.finishVideoRecordingState()
+
+            if let error {
+                self.errorMessage = "Recording failed: \(error.localizedDescription)"
+                self.cleanupVideoFile(outputFileURL)
+                return
+            }
+
+            self.saveVideoToPhotos(outputFileURL)
         }
     }
 }
