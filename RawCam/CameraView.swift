@@ -1,6 +1,5 @@
 import SwiftUI
 import AVFoundation
-import AVKit
 import CoreMotion
 import MediaPlayer
 
@@ -235,8 +234,6 @@ struct CameraView: View {
         .sheet(isPresented: $showMediaRoll) {
             RawCamRollSheet(items: camera.mediaItems) { item in
                 camera.thumbnail(for: item)
-            } mediaURLProvider: { item in
-                camera.mediaURL(for: item)
             }
         }
     }
@@ -1648,8 +1645,6 @@ struct RawCamRollSheet: View {
     @Environment(\.dismiss) var dismiss
     let items: [RawCamMediaItem]
     let thumbnailProvider: (RawCamMediaItem) -> UIImage?
-    let mediaURLProvider: (RawCamMediaItem) -> URL?
-    @State private var playingURL: URL?
 
     var body: some View {
         ZStack {
@@ -1706,11 +1701,8 @@ struct RawCamRollSheet: View {
                             ForEach(items) { item in
                                 RawCamRollCard(
                                     item: item,
-                                    image: thumbnailProvider(item),
-                                    mediaURL: mediaURLProvider(item)
-                                ) { url in
-                                    playingURL = url
-                                }
+                                    image: thumbnailProvider(item)
+                                )
                             }
                         }
                         .padding(.bottom, 24)
@@ -1721,20 +1713,12 @@ struct RawCamRollSheet: View {
             .padding(22)
         }
         .preferredColorScheme(.dark)
-        .sheet(item: Binding(
-            get: { playingURL.map(PlayableVideoURL.init(url:)) },
-            set: { playingURL = $0?.url }
-        )) { item in
-            VideoPlaybackSheet(url: item.url)
-        }
     }
 }
 
 struct RawCamRollCard: View {
     let item: RawCamMediaItem
     let image: UIImage?
-    let mediaURL: URL?
-    let playAction: (URL) -> Void
 
     private var isVideo: Bool {
         item.mediaKind == "video" || item.details.mode.localizedCaseInsensitiveContains("VIDEO")
@@ -1743,9 +1727,7 @@ struct RawCamRollCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Button {
-                if let mediaURL {
-                    playAction(mediaURL)
-                }
+                openPhotosApp()
             } label: {
                 ZStack {
                     LastCapturePreview(image: image)
@@ -1756,10 +1738,10 @@ struct RawCamRollCard: View {
                             .fill(Color.black.opacity(0.48))
                             .frame(width: 64, height: 64)
                             .overlay(
-                                Image(systemName: mediaURL == nil ? "exclamationmark.triangle" : "play.fill")
+                                Image(systemName: "play.fill")
                                     .font(.system(size: 24, weight: .bold))
                                     .foregroundColor(.white)
-                                    .offset(x: mediaURL == nil ? 0 : 2)
+                                    .offset(x: 2)
                             )
                             .overlay(
                                 Circle()
@@ -1769,7 +1751,7 @@ struct RawCamRollCard: View {
                 }
             }
             .buttonStyle(DimPressStyle())
-            .disabled(!isVideo || mediaURL == nil)
+            .disabled(!isVideo)
 
             HStack {
                 Text(item.details.mode)
@@ -1813,6 +1795,11 @@ struct RawCamRollCard: View {
                 .font(.system(size: 12, weight: .bold, design: .monospaced))
                 .foregroundColor(Color(white: 0.80))
         }
+    }
+
+    private func openPhotosApp() {
+        guard let url = URL(string: "photos-redirect://") else { return }
+        UIApplication.shared.open(url)
     }
 }
 
@@ -1860,37 +1847,6 @@ struct LastCaptureStrip: View {
             )
         }
         .buttonStyle(DimPressStyle())
-    }
-}
-
-struct PlayableVideoURL: Identifiable {
-    let url: URL
-    var id: String { url.absoluteString }
-}
-
-struct VideoPlaybackSheet: View {
-    @Environment(\.dismiss) var dismiss
-    let url: URL
-
-    var body: some View {
-        ZStack(alignment: .topTrailing) {
-            Color.black.ignoresSafeArea()
-            VideoPlayer(player: AVPlayer(url: url))
-                .ignoresSafeArea()
-
-            Button {
-                dismiss()
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundColor(.white)
-                    .frame(width: 36, height: 36)
-                    .background(Color.black.opacity(0.48), in: Circle())
-            }
-            .padding(.top, 18)
-            .padding(.trailing, 18)
-        }
-        .preferredColorScheme(.dark)
     }
 }
 

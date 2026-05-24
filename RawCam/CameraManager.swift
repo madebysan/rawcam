@@ -98,6 +98,7 @@ struct RawCamMediaItem: Identifiable, Codable, Equatable {
     let thumbnailFilename: String?
     let mediaFilename: String?
     let mediaKind: String?
+    let photosAssetIdentifier: String?
 }
 
 struct CameraLens: Identifiable, Hashable {
@@ -1202,9 +1203,11 @@ class CameraManager: NSObject, ObservableObject {
                 return
             }
 
+            var photosAssetIdentifier: String?
             PHPhotoLibrary.shared().performChanges {
                 let request = PHAssetCreationRequest.forAsset()
                 request.addResource(with: .video, fileURL: fileURL, options: PHAssetResourceCreationOptions())
+                photosAssetIdentifier = request.placeholderForCreatedAsset?.localIdentifier
             } completionHandler: { success, error in
                 DispatchQueue.main.async {
                     if success {
@@ -1213,12 +1216,11 @@ class CameraManager: NSObject, ObservableObject {
                         self?.showSaved(label: "VIDEO")
                         self?.lastThumbnail = self?.latestPreviewImage
                         if let details {
-                            let mediaFilename = self?.saveMediaRollVideo(fileURL)
                             self?.addMediaRollItem(
                                 details: details,
                                 thumbnail: self?.latestPreviewImage,
-                                mediaFilename: mediaFilename,
-                                mediaKind: "video"
+                                mediaKind: "video",
+                                photosAssetIdentifier: photosAssetIdentifier
                             )
                         }
                     } else {
@@ -1299,17 +1301,11 @@ class CameraManager: NSObject, ObservableObject {
         return UIImage(contentsOfFile: mediaRollDirectory.appendingPathComponent(thumbnailFilename).path)
     }
 
-    func mediaURL(for item: RawCamMediaItem) -> URL? {
-        guard let mediaFilename = item.mediaFilename else { return nil }
-        let url = mediaRollDirectory.appendingPathComponent(mediaFilename)
-        return FileManager.default.fileExists(atPath: url.path) ? url : nil
-    }
-
     private func addMediaRollItem(
         details: CaptureDetails,
         thumbnail: UIImage?,
-        mediaFilename: String? = nil,
-        mediaKind: String? = nil
+        mediaKind: String? = nil,
+        photosAssetIdentifier: String? = nil
     ) {
         let id = UUID()
         let thumbnailFilename = saveMediaRollThumbnail(thumbnail, id: id)
@@ -1318,8 +1314,9 @@ class CameraManager: NSObject, ObservableObject {
             capturedAt: Date(),
             details: details,
             thumbnailFilename: thumbnailFilename,
-            mediaFilename: mediaFilename,
-            mediaKind: mediaKind
+            mediaFilename: nil,
+            mediaKind: mediaKind,
+            photosAssetIdentifier: photosAssetIdentifier
         )
         mediaItems.insert(item, at: 0)
         saveMediaRoll()
@@ -1364,23 +1361,6 @@ class CameraManager: NSObject, ObservableObject {
             try data.write(to: mediaRollDirectory.appendingPathComponent(filename), options: .atomic)
             return filename
         } catch {
-            return nil
-        }
-    }
-
-    private func saveMediaRollVideo(_ fileURL: URL) -> String? {
-        let filename = "\(UUID().uuidString).mov"
-        let destination = mediaRollDirectory.appendingPathComponent(filename)
-
-        do {
-            try FileManager.default.createDirectory(at: mediaRollDirectory, withIntermediateDirectories: true)
-            if FileManager.default.fileExists(atPath: destination.path) {
-                try FileManager.default.removeItem(at: destination)
-            }
-            try FileManager.default.copyItem(at: fileURL, to: destination)
-            return filename
-        } catch {
-            errorMessage = "Saved to Photos, but RawCam roll video could not update."
             return nil
         }
     }
