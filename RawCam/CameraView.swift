@@ -181,7 +181,7 @@ struct CameraView: View {
             HelpSheet()
         }
         .sheet(isPresented: $showLastDetails) {
-            LastCaptureSheet(details: camera.lastCaptureDetails)
+            LastCaptureSheet(details: camera.lastCaptureDetails, image: camera.lastThumbnail)
         }
     }
 
@@ -1454,12 +1454,13 @@ struct SteadyShotOverlay: View {
 struct LastCaptureSheet: View {
     @Environment(\.dismiss) var dismiss
     let details: CaptureDetails?
+    let image: UIImage?
 
     var body: some View {
         ZStack {
             Color(red: 0.05, green: 0.05, blue: 0.05).ignoresSafeArea()
 
-            VStack(alignment: .leading, spacing: 22) {
+            VStack(alignment: .leading, spacing: 18) {
                 HStack {
                     Text("LAST CAPTURE")
                         .font(.system(size: 12, weight: .bold, design: .monospaced))
@@ -1478,6 +1479,8 @@ struct LastCaptureSheet: View {
                 }
 
                 if let details {
+                    LastCapturePreview(image: image)
+
                     VStack(spacing: 10) {
                         detailRow("MODE", details.mode)
                         detailRow("LENS", details.lens)
@@ -1514,6 +1517,48 @@ struct LastCaptureSheet: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
         .background(Color(white: 0.10), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+    }
+}
+
+struct LastCapturePreview: View {
+    let image: UIImage?
+
+    var body: some View {
+        ZStack {
+            if let image {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 230)
+                    .clipped()
+            } else {
+                VStack(spacing: 10) {
+                    Image(systemName: "photo")
+                        .font(.system(size: 28, weight: .semibold))
+                        .foregroundColor(Color(white: 0.55))
+                    Text("PREVIEW UNAVAILABLE")
+                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        .foregroundColor(Color(white: 0.48))
+                        .tracking(1.4)
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: 230)
+                .background(Color(white: 0.08))
+            }
+
+            LinearGradient(
+                colors: [.black.opacity(0.0), .black.opacity(0.36)],
+                startPoint: .center,
+                endPoint: .bottom
+            )
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(Color.white.opacity(0.09), lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.35), radius: 18, x: 0, y: 12)
     }
 }
 

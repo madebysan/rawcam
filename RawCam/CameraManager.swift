@@ -77,6 +77,7 @@ class CameraManager: NSObject, ObservableObject {
     @Published var isUsingFrontCamera = false
     @Published var rawSupported = false
     @Published var lastCaptureDetails: CaptureDetails?
+    @Published var lastAssetIdentifier: String?
     @Published var availableLenses: [CameraLens] = []
     @Published var selectedLensID: String?
 
@@ -636,13 +637,22 @@ class CameraManager: NSObject, ObservableObject {
                 return
             }
 
+            var placeholderID: String?
+
             PHPhotoLibrary.shared().performChanges {
                 let request = PHAssetCreationRequest.forAsset()
                 request.addResource(with: resourceType, data: data, options: PHAssetResourceCreationOptions())
+                placeholderID = request.placeholderForCreatedAsset?.localIdentifier
             } completionHandler: { success, error in
                 DispatchQueue.main.async {
                     if success {
+                        self?.lastAssetIdentifier = placeholderID
+
                         if self?.isBracketing == true {
+                            if let image = UIImage(data: data) {
+                                self?.lastThumbnail = image
+                            }
+                            self?.loadThumbnail(for: placeholderID)
                             self?.bracketSavedCount += 1
                             self?.bracketIndex += 1
                             self?.captureNextBracket()
@@ -655,6 +665,7 @@ class CameraManager: NSObject, ObservableObject {
                         if let image = UIImage(data: data) {
                             self?.lastThumbnail = image
                         }
+                        self?.loadThumbnail(for: placeholderID)
                     } else {
                         self?.finishBracket(restoreBias: true)
                         self?.errorMessage = "Failed to save: \(error?.localizedDescription ?? "Unknown error")"
@@ -674,26 +685,58 @@ class CameraManager: NSObject, ObservableObject {
                 return
             }
 
+            var rawPlaceholderID: String?
+            var processedPlaceholderID: String?
+
             PHPhotoLibrary.shared().performChanges {
                 // Save as separate assets so both are visible in Photos
                 let rawRequest = PHAssetCreationRequest.forAsset()
                 rawRequest.addResource(with: .photo, data: rawData, options: PHAssetResourceCreationOptions())
+                rawPlaceholderID = rawRequest.placeholderForCreatedAsset?.localIdentifier
 
                 let processedRequest = PHAssetCreationRequest.forAsset()
                 processedRequest.addResource(with: .photo, data: processedData, options: PHAssetResourceCreationOptions())
+                processedPlaceholderID = processedRequest.placeholderForCreatedAsset?.localIdentifier
             } completionHandler: { success, error in
                 DispatchQueue.main.async {
                     self?.isTakingPhoto = false
                     if success {
                         self?.lastCaptureDetails = self?.captureDetails(label: "RAW+JPG")
                         self?.showSaved(label: "RAW+JPG")
+                        let previewID = processedPlaceholderID ?? rawPlaceholderID
+                        self?.lastAssetIdentifier = previewID
                         if let image = UIImage(data: processedData) {
                             self?.lastThumbnail = image
                         }
+                        self?.loadThumbnail(for: previewID)
                     } else {
                         self?.errorMessage = "Failed to save: \(error?.localizedDescription ?? "Unknown error")"
                     }
                 }
+            }
+        }
+    }
+
+    private func loadThumbnail(for localIdentifier: String?) {
+        guard let localIdentifier else { return }
+
+        let assets = PHAsset.fetchAssets(withLocalIdentifiers: [localIdentifier], options: nil)
+        guard let asset = assets.firstObject else { return }
+
+        let options = PHImageRequestOptions()
+        options.deliveryMode = .highQualityFormat
+        options.resizeMode = .fast
+        options.isNetworkAccessAllowed = true
+
+        PHImageManager.default().requestImage(
+            for: asset,
+            targetSize: CGSize(width: 900, height: 900),
+            contentMode: .aspectFill,
+            options: options
+        ) { [weak self] image, _ in
+            guard let image else { return }
+            DispatchQueue.main.async {
+                self?.lastThumbnail = image
             }
         }
     }
