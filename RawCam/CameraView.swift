@@ -71,13 +71,14 @@ struct CameraView: View {
             .ignoresSafeArea()
 
             if showGrid {
-                GridOverlay()
+                GridOverlay(bottomInset: 360)
                     .ignoresSafeArea()
                     .allowsHitTesting(false)
             }
 
             if showLevel {
                 HorizonLevel(roll: level.roll)
+                    .padding(.bottom, 220)
                     .allowsHitTesting(false)
             }
 
@@ -1067,16 +1068,19 @@ struct BarHistogram: View {
 // MARK: - Capture Aids
 
 struct GridOverlay: View {
+    let bottomInset: CGFloat
+
     var body: some View {
         GeometryReader { geo in
             Path { path in
+                let guideHeight = max(geo.size.height - bottomInset, geo.size.height * 0.45)
                 let thirdWidth = geo.size.width / 3
-                let thirdHeight = geo.size.height / 3
+                let thirdHeight = guideHeight / 3
 
                 for index in 1...2 {
                     let x = CGFloat(index) * thirdWidth
                     path.move(to: CGPoint(x: x, y: 0))
-                    path.addLine(to: CGPoint(x: x, y: geo.size.height))
+                    path.addLine(to: CGPoint(x: x, y: guideHeight))
 
                     let y = CGFloat(index) * thirdHeight
                     path.move(to: CGPoint(x: 0, y: y))

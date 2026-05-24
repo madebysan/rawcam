@@ -491,11 +491,9 @@ class CameraManager: NSObject, ObservableObject {
         guard isBracketing else { return }
 
         guard bracketIndex < bracketOffsets.count else {
-            isBracketing = false
-            setExposureBias(bracketOriginalBias)
+            finishBracket(restoreBias: true)
             showSaved(label: "BRACKET")
             lastCaptureDetails = captureDetails(label: "BRACKET x3")
-            isTakingPhoto = false
             return
         }
 
@@ -549,8 +547,7 @@ class CameraManager: NSObject, ObservableObject {
             guard status == .authorized else {
                 DispatchQueue.main.async {
                     self?.errorMessage = "Photo library access denied"
-                    self?.isBracketing = false
-                    self?.isTakingPhoto = false
+                    self?.finishBracket(restoreBias: true)
                 }
                 return
             }
@@ -575,8 +572,7 @@ class CameraManager: NSObject, ObservableObject {
                             self?.lastThumbnail = image
                         }
                     } else {
-                        self?.isBracketing = false
-                        self?.isTakingPhoto = false
+                        self?.finishBracket(restoreBias: true)
                         self?.errorMessage = "Failed to save: \(error?.localizedDescription ?? "Unknown error")"
                     }
                 }
@@ -656,6 +652,15 @@ class CameraManager: NSObject, ObservableObject {
             clipping: clippingText
         )
     }
+
+    private func finishBracket(restoreBias: Bool) {
+        let wasBracketing = isBracketing
+        isBracketing = false
+        if restoreBias && wasBracketing {
+            setExposureBias(bracketOriginalBias)
+        }
+        isTakingPhoto = false
+    }
 }
 
 // MARK: - Photo Delegate
@@ -665,16 +670,14 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
         if let error = error {
             DispatchQueue.main.async {
                 self.errorMessage = "Capture failed: \(error.localizedDescription)"
-                self.isTakingPhoto = false
+                self.finishBracket(restoreBias: true)
             }
             return
         }
 
         guard let data = photo.fileDataRepresentation() else {
             DispatchQueue.main.async {
-                self.isBracketing = false
-                self.setExposureBias(self.bracketOriginalBias)
-                self.isTakingPhoto = false
+                self.finishBracket(restoreBias: true)
             }
             return
         }
