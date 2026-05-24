@@ -96,6 +96,8 @@ struct RawCamMediaItem: Identifiable, Codable, Equatable {
     let capturedAt: Date
     let details: CaptureDetails
     let thumbnailFilename: String?
+    let mediaFilename: String?
+    let mediaKind: String?
 }
 
 struct CameraLens: Identifiable, Hashable {
@@ -383,6 +385,48 @@ class CameraManager: NSObject, ObservableObject {
         selectedVideoFormat = nextIndex == availableVideoFormats.endIndex
             ? availableVideoFormats[0]
             : availableVideoFormats[nextIndex]
+    }
+
+    func resetControlsToDefaults() {
+        guard let device = currentDevice else { return }
+
+        do {
+            try device.lockForConfiguration()
+            if device.isExposureModeSupported(.continuousAutoExposure) {
+                device.exposureMode = .continuousAutoExposure
+            }
+            if device.isFocusModeSupported(.continuousAutoFocus) {
+                device.focusMode = .continuousAutoFocus
+            }
+            if device.isWhiteBalanceModeSupported(.continuousAutoWhiteBalance) {
+                device.whiteBalanceMode = .continuousAutoWhiteBalance
+            }
+            if device.activeFormat.isVideoHDRSupported {
+                device.automaticallyAdjustsVideoHDREnabled = true
+            }
+            setBestAvailableColorSpace([.sRGB], for: device)
+            device.unlockForConfiguration()
+        } catch {
+            errorMessage = "Cannot reset controls: \(error.localizedDescription)"
+            return
+        }
+
+        captureMode = .raw
+        flashMode = .off
+        selectedVideoFormat = availableVideoFormats.contains(.hevc) ? .hevc : (availableVideoFormats.first ?? .hevc)
+        isManualExposure = false
+        isExposureLocked = false
+        exposureBias = 0
+        iso = device.iso
+        shutterSpeed = CMTimeGetSeconds(device.exposureDuration)
+        whiteBalancePreset = .auto
+        kelvin = 5500
+        isManualWhiteBalance = false
+        focusPoint = nil
+        exposurePoint = nil
+        isFocusLocked = false
+        showFocusIndicator = false
+        showExposureIndicator = false
     }
 
     private func bestCamera(for position: AVCaptureDevice.Position) -> AVCaptureDevice? {
@@ -805,7 +849,7 @@ class CameraManager: NSObject, ObservableObject {
             let details = captureDetails(label: "BRACKET x3")
             lastCaptureDetails = details
             lastThumbnail = latestPreviewImage
-            addMediaRollItem(details: details, thumbnail: latestPreviewImage)
+            addMediaRollItem(details: details, thumbnail: latestPreviewImage, mediaKind: "photo")
             return
         }
 
@@ -1050,7 +1094,11 @@ class CameraManager: NSObject, ObservableObject {
                         self?.showSaved(label: label)
                         self?.lastThumbnail = self?.latestPreviewImage
                         if let details {
-                            self?.addMediaRollItem(details: details, thumbnail: self?.latestPreviewImage)
+                            self?.addMediaRollItem(
+                                details: details,
+                                thumbnail: self?.latestPreviewImage,
+                                mediaKind: "photo"
+                            )
                         }
                     } else {
                         self?.finishBracket(restoreBias: true)
@@ -1088,7 +1136,11 @@ class CameraManager: NSObject, ObservableObject {
                         let thumbnail = UIImage(data: processedData)
                         self?.lastThumbnail = thumbnail
                         if let details {
-                            self?.addMediaRollItem(details: details, thumbnail: thumbnail)
+                            self?.addMediaRollItem(
+                                details: details,
+                                thumbnail: thumbnail,
+                                mediaKind: "photo"
+                            )
                         }
                     } else {
                         self?.errorMessage = "Failed to save: \(error?.localizedDescription ?? "Unknown error")"
@@ -1119,7 +1171,13 @@ class CameraManager: NSObject, ObservableObject {
                         self?.showSaved(label: "VIDEO")
                         self?.lastThumbnail = self?.latestPreviewImage
                         if let details {
-                            self?.addMediaRollItem(details: details, thumbnail: self?.latestPreviewImage)
+                            let mediaFilename = self?.saveMediaRollVideo(fileURL)
+                            self?.addMediaRollItem(
+                                details: details,
+                                thumbnail: self?.latestPreviewImage,
+                                mediaFilename: mediaFilename,
+                                mediaKind: "video"
+                            )
                         }
                     } else {
                         self?.errorMessage = "Failed to save video: \(error?.localizedDescription ?? "Unknown error")"
@@ -1199,14 +1257,27 @@ class CameraManager: NSObject, ObservableObject {
         return UIImage(contentsOfFile: mediaRollDirectory.appendingPathComponent(thumbnailFilename).path)
     }
 
-    private func addMediaRollItem(details: CaptureDetails, thumbnail: UIImage?) {
+    func mediaURL(for item: RawCamMediaItem) -> URL? {
+        guard let mediaFilename = item.mediaFilename else { return nil }
+        let url = mediaRollDirectory.appendingPathComponent(mediaFilename)
+        return FileManager.default.fileExists(atPath: url.path) ? url : nil
+    }
+
+    private func addMediaRollItem(
+        details: CaptureDetails,
+        thumbnail: UIImage?,
+        mediaFilename: String? = nil,
+        mediaKind: String? = nil
+    ) {
         let id = UUID()
         let thumbnailFilename = saveMediaRollThumbnail(thumbnail, id: id)
         let item = RawCamMediaItem(
             id: id,
             capturedAt: Date(),
             details: details,
-            thumbnailFilename: thumbnailFilename
+            thumbnailFilename: thumbnailFilename,
+            mediaFilename: mediaFilename,
+            mediaKind: mediaKind
         )
         mediaItems.insert(item, at: 0)
         saveMediaRoll()
@@ -1251,6 +1322,23 @@ class CameraManager: NSObject, ObservableObject {
             try data.write(to: mediaRollDirectory.appendingPathComponent(filename), options: .atomic)
             return filename
         } catch {
+            return nil
+        }
+    }
+
+    private func saveMediaRollVideo(_ fileURL: URL) -> String? {
+        let filename = "\(UUID().uuidString).mov"
+        let destination = mediaRollDirectory.appendingPathComponent(filename)
+
+        do {
+            try FileManager.default.createDirectory(at: mediaRollDirectory, withIntermediateDirectories: true)
+            if FileManager.default.fileExists(atPath: destination.path) {
+                try FileManager.default.removeItem(at: destination)
+            }
+            try FileManager.default.copyItem(at: fileURL, to: destination)
+            return filename
+        } catch {
+            errorMessage = "Saved to Photos, but RawCam roll video could not update."
             return nil
         }
     }

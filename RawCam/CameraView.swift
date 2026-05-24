@@ -1,5 +1,6 @@
 import SwiftUI
 import AVFoundation
+import AVKit
 import CoreMotion
 import MediaPlayer
 
@@ -34,6 +35,8 @@ private enum FeatureIcon {
     static let bracket = "square.stack.3d.down.right"
     static let histogram = "line.3.horizontal.decrease"
     static let shutterShortcuts = "button.programmable"
+    static let zebra = "line.diagonal"
+    static let reset = "arrow.counterclockwise"
 }
 
 enum AppCaptureMode: String, CaseIterable {
@@ -49,7 +52,7 @@ private extension Image {
             .frame(width: 54, height: 54)
             .background(
                 LinearGradient(
-                    colors: [Theme.surfaceHigh.opacity(0.74), Theme.surface.opacity(0.92)],
+                    colors: [Color.black.opacity(0.34), Color.black.opacity(0.52)],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 ),
@@ -90,6 +93,7 @@ struct CameraView: View {
     @AppStorage("tapTarget") private var tapTargetRaw = "focus"
     @AppStorage("showGrid") private var showGrid = false
     @AppStorage("showLevel") private var showLevel = false
+    @AppStorage("showZebra") private var showZebra = false
     @AppStorage("selfTimerSeconds") private var selfTimerSeconds = 0
     @AppStorage("bracketEnabled") private var bracketEnabled = false
     @AppStorage("captureMode") private var persistedCaptureMode = CaptureMode.raw.rawValue
@@ -142,7 +146,7 @@ struct CameraView: View {
                     .allowsHitTesting(false)
             }
 
-            if camera.isHighlightClipping {
+            if showZebra && camera.isHighlightClipping {
                 ZebraOverlay(bottomInset: controlsExpanded ? 360 : 220)
                     .ignoresSafeArea()
                     .allowsHitTesting(false)
@@ -230,6 +234,8 @@ struct CameraView: View {
         .sheet(isPresented: $showMediaRoll) {
             RawCamRollSheet(items: camera.mediaItems) { item in
                 camera.thumbnail(for: item)
+            } mediaURLProvider: { item in
+                camera.mediaURL(for: item)
             }
         }
     }
@@ -271,32 +277,52 @@ struct CameraView: View {
             histogramCluster
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            // Center — capture + format selector
-            VStack(spacing: 7) {
-                appModeBadge
-                formatBadge
-            }
+            recordingStatusBadge
                 .frame(maxWidth: .infinity, alignment: .center)
 
             // Right — flash
-            Button {
-                guard appCaptureMode == .photo else { return }
+            if appCaptureMode == .photo {
+                Button {
                 hapticMedium.impactOccurred()
                 hapticMedium.prepare()
                 camera.toggleFlash()
-            } label: {
-                Image(systemName: camera.flashIcon)
-                    .font(.system(size: 17, weight: .medium))
-                    .foregroundColor(.white)
-                    .shadow(color: .black.opacity(0.5), radius: 4)
+                } label: {
+                    Image(systemName: camera.flashIcon)
+                        .font(.system(size: 17, weight: .medium))
+                        .foregroundColor(.white)
+                        .shadow(color: .black.opacity(0.5), radius: 4)
+                        .frame(width: 44, height: 44)
+                        .background(Color.black.opacity(0.28), in: Circle())
+                        .contentShape(Rectangle())
+                }
+                .frame(maxWidth: .infinity, alignment: .trailing)
+            } else {
+                Color.clear
                     .frame(width: 44, height: 44)
-                    .contentShape(Rectangle())
+                    .frame(maxWidth: .infinity, alignment: .trailing)
             }
-            .opacity(appCaptureMode == .photo ? 1 : 0.35)
-            .frame(maxWidth: .infinity, alignment: .trailing)
         }
         .padding(.horizontal, 24)
         .padding(.top, 60)
+    }
+
+    @ViewBuilder
+    private var recordingStatusBadge: some View {
+        if appCaptureMode == .video && camera.isRecordingVideo {
+            HStack(spacing: 8) {
+                Circle()
+                    .fill(Color.red)
+                    .frame(width: 7, height: 7)
+                Text(recordingElapsedText)
+                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                    .foregroundColor(.white)
+                    .tracking(1)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(.black.opacity(0.38), in: Capsule())
+            .overlay(Capsule().strokeBorder(Color.white.opacity(0.10), lineWidth: 1))
+        }
     }
 
     private var histogramCluster: some View {
@@ -623,6 +649,13 @@ struct CameraView: View {
             .frame(height: 28)
             .animation(Theme.tapSpring, value: camera.showSavedConfirmation)
 
+            HStack(spacing: 10) {
+                appModeBadge
+                formatBadge
+            }
+            .frame(maxWidth: .infinity, alignment: .center)
+            .padding(.bottom, 2)
+
             // Shutter row: [gallery] | [shutter fixed center] | [info · flip]
             HStack(alignment: .center, spacing: 0) {
                 // Left — gallery + tools, fills equal half
@@ -769,23 +802,13 @@ struct CameraView: View {
                 focusLockChip
 
                 controlChip(
-                    icon: FeatureIcon.timer,
-                    title: "TIMER",
-                    value: timerSummary,
-                    isActive: selfTimerSeconds > 0,
-                    action: { cycleTimer() }
-                )
-
-                controlChip(
                     icon: FeatureIcon.grid,
                     title: "GRID",
                     value: showGrid ? "ON" : "OFF",
                     isActive: showGrid,
                     action: { showGrid.toggle() }
                 )
-            }
 
-            HStack(spacing: 8) {
                 controlChip(
                     icon: FeatureIcon.level,
                     title: "LEVEL",
@@ -793,7 +816,9 @@ struct CameraView: View {
                     isActive: showLevel,
                     action: { showLevel.toggle() }
                 )
+            }
 
+            HStack(spacing: 8) {
                 controlChip(
                     icon: tapTarget == .meter ? FeatureIcon.meter : FeatureIcon.focus,
                     title: "TAP",
@@ -803,18 +828,62 @@ struct CameraView: View {
                 )
 
                 controlChip(
-                    icon: FeatureIcon.bracket,
-                    title: appCaptureMode == .photo ? "BRKT" : "VID",
-                    value: appCaptureMode == .photo ? (bracketEnabled ? "3 RAW" : "OFF") : camera.selectedVideoFormat.rawValue,
-                    isActive: appCaptureMode == .photo ? bracketEnabled : camera.isRecordingVideo,
-                    action: {
-                        guard appCaptureMode == .photo else {
-                            camera.cycleVideoFormat()
-                            return
-                        }
-                        bracketEnabled.toggle()
-                    }
+                    icon: FeatureIcon.zebra,
+                    title: "ZEBRA",
+                    value: showZebra ? "ON" : "OFF",
+                    isActive: showZebra,
+                    action: { showZebra.toggle() }
                 )
+
+                controlChip(
+                    icon: FeatureIcon.reset,
+                    title: "RESET",
+                    value: "ALL",
+                    isActive: false,
+                    action: { resetAllControls() }
+                )
+            }
+
+            if appCaptureMode == .photo {
+                HStack(spacing: 8) {
+                    controlChip(
+                        icon: FeatureIcon.timer,
+                        title: "TIMER",
+                        value: timerSummary,
+                        isActive: selfTimerSeconds > 0,
+                        action: { cycleTimer() }
+                    )
+
+                    controlChip(
+                        icon: FeatureIcon.bracket,
+                        title: "BRKT",
+                        value: bracketEnabled ? "3 RAW" : "OFF",
+                        isActive: bracketEnabled,
+                        action: { bracketEnabled.toggle() }
+                    )
+
+                    Color.clear
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 46)
+                }
+            } else {
+                HStack(spacing: 8) {
+                    controlChip(
+                        icon: "video",
+                        title: "FORMAT",
+                        value: camera.selectedVideoFormat.rawValue,
+                        isActive: camera.selectedVideoFormat != .hevc,
+                        action: { camera.cycleVideoFormat() }
+                    )
+
+                    Color.clear
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 46)
+
+                    Color.clear
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 46)
+                }
             }
         }
         .padding(.horizontal, 10)
@@ -990,6 +1059,22 @@ struct CameraView: View {
         case 3: selfTimerSeconds = 10
         default: selfTimerSeconds = 0
         }
+    }
+
+    private func resetAllControls() {
+        hapticMedium.impactOccurred()
+        hapticMedium.prepare()
+
+        camera.resetControlsToDefaults()
+        appCaptureMode = .photo
+        tapTarget = .focus
+        showGrid = false
+        showLevel = false
+        showZebra = false
+        selfTimerSeconds = 0
+        bracketEnabled = false
+        countdown = nil
+        activePanel = nil
     }
 
     // MARK: - Helpers
@@ -1225,9 +1310,10 @@ struct GalleryThumb: View {
                         RoundedRectangle(cornerRadius: 10, style: .continuous)
                             .strokeBorder(Color.white.opacity(0.25), lineWidth: 1)
                     )
+                    .background(Color.black.opacity(0.28), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
             } else {
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(Color.white.opacity(0.12))
+                    .fill(Color.black.opacity(0.38))
                     .frame(width: 50, height: 50)
                     .overlay(
                         Image(systemName: "photo")
@@ -1599,6 +1685,8 @@ struct RawCamRollSheet: View {
     @Environment(\.dismiss) var dismiss
     let items: [RawCamMediaItem]
     let thumbnailProvider: (RawCamMediaItem) -> UIImage?
+    let mediaURLProvider: (RawCamMediaItem) -> URL?
+    @State private var playingURL: URL?
 
     var body: some View {
         ZStack {
@@ -1653,7 +1741,13 @@ struct RawCamRollSheet: View {
                     ScrollView {
                         LazyVStack(spacing: 14) {
                             ForEach(items) { item in
-                                RawCamRollCard(item: item, image: thumbnailProvider(item))
+                                RawCamRollCard(
+                                    item: item,
+                                    image: thumbnailProvider(item),
+                                    mediaURL: mediaURLProvider(item)
+                                ) { url in
+                                    playingURL = url
+                                }
                             }
                         }
                         .padding(.bottom, 24)
@@ -1664,17 +1758,55 @@ struct RawCamRollSheet: View {
             .padding(22)
         }
         .preferredColorScheme(.dark)
+        .sheet(item: Binding(
+            get: { playingURL.map(PlayableVideoURL.init(url:)) },
+            set: { playingURL = $0?.url }
+        )) { item in
+            VideoPlaybackSheet(url: item.url)
+        }
     }
 }
 
 struct RawCamRollCard: View {
     let item: RawCamMediaItem
     let image: UIImage?
+    let mediaURL: URL?
+    let playAction: (URL) -> Void
+
+    private var isVideo: Bool {
+        item.mediaKind == "video" || item.details.mode.localizedCaseInsensitiveContains("VIDEO")
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            LastCapturePreview(image: image)
-                .frame(height: 230)
+            Button {
+                if let mediaURL {
+                    playAction(mediaURL)
+                }
+            } label: {
+                ZStack {
+                    LastCapturePreview(image: image)
+                        .frame(height: 230)
+
+                    if isVideo {
+                        Circle()
+                            .fill(Color.black.opacity(0.48))
+                            .frame(width: 64, height: 64)
+                            .overlay(
+                                Image(systemName: mediaURL == nil ? "exclamationmark.triangle" : "play.fill")
+                                    .font(.system(size: 24, weight: .bold))
+                                    .foregroundColor(.white)
+                                    .offset(x: mediaURL == nil ? 0 : 2)
+                            )
+                            .overlay(
+                                Circle()
+                                    .strokeBorder(Color.white.opacity(0.18), lineWidth: 1)
+                            )
+                    }
+                }
+            }
+            .buttonStyle(DimPressStyle())
+            .disabled(!isVideo || mediaURL == nil)
 
             HStack {
                 Text(item.details.mode)
@@ -1765,6 +1897,37 @@ struct LastCaptureStrip: View {
             )
         }
         .buttonStyle(DimPressStyle())
+    }
+}
+
+struct PlayableVideoURL: Identifiable {
+    let url: URL
+    var id: String { url.absoluteString }
+}
+
+struct VideoPlaybackSheet: View {
+    @Environment(\.dismiss) var dismiss
+    let url: URL
+
+    var body: some View {
+        ZStack(alignment: .topTrailing) {
+            Color.black.ignoresSafeArea()
+            VideoPlayer(player: AVPlayer(url: url))
+                .ignoresSafeArea()
+
+            Button {
+                dismiss()
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundColor(.white)
+                    .frame(width: 36, height: 36)
+                    .background(Color.black.opacity(0.48), in: Circle())
+            }
+            .padding(.top, 18)
+            .padding(.trailing, 18)
+        }
+        .preferredColorScheme(.dark)
     }
 }
 
