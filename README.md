@@ -4,7 +4,7 @@
 
 A minimal iOS camera. Saves only the sensor's raw DNG.
 
-**v1.0** · iOS 17+
+**v1.1** · iOS 17+
 
 <a href="https://apps.apple.com/us/app/rawcam-raw-dng-camera/id6765531876">
   <img src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg" alt="Download on the App Store" height="50">
@@ -18,7 +18,8 @@ RawCam is a minimal iOS camera that saves only the sensor's raw DNG. Tap the shu
 
 - **RAW mode.** Saves a single 12MP DNG with zero AI processing.
 - **RAW+JPG mode.** Captures both a clean DNG and an Apple-processed JPEG simultaneously (saved as two photos). Useful for comparing what the stock pipeline does to a shot.
-- **Tap to focus.** Tap anywhere on preview. Long-press to lock focus.
+- **3x3 tools grid.** Exposure, white balance, lens, lock, timer, grid, level, tap targeting, and bracketing in one compact drawer.
+- **Tap to focus.** Tap anywhere on preview. Use `LOCK` to hold current AF/AE, or long-press for point-based focus lock.
 - **Manual exposure.** Toggle manual mode for ISO and shutter speed.
 - **EV compensation.** Adjust auto exposure without switching to full manual.
 - **Separate metering.** Switch tap mode between focus and exposure targeting.
@@ -27,13 +28,12 @@ RawCam is a minimal iOS camera that saves only the sensor's raw DNG. Tap the shu
 - **Grid + level.** Optional composition grid and horizon level.
 - **Self-timer.** Off / 3s / 10s.
 - **Volume-button shutter.** Use the hardware volume buttons as a shutter release.
-- **Anti-shake shutter.** Waits for the phone to steady before firing.
 - **RAW bracketing.** Captures three RAW frames at different EV values.
-- **Last-shot details.** Shows mode, lens, ISO, shutter, EV, white balance, and clipping.
+- **Last-shot details.** Shows mode, lens, ISO, shutter, EV, white balance, clipping, and a preview when available.
 - **App Shortcut.** Launch RawCam from Shortcuts, Siri, Spotlight, or the Action Button on supported iPhones.
 - **Flash toggle.** Off / on / auto.
 - **Front / back camera** switch.
-- **Live histogram + zebra.** 8-bar readout with highlight/shadow clipping warnings and zebra stripes for clipped highlights.
+- **Live histogram + zebra.** Orange edge bars mark clipping, and zebra stripes warn when highlights blow out.
 
 ## Why not just use the iOS Camera app?
 
