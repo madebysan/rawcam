@@ -1,1 +1,1 @@
-Adds more pro camera controls: lens selection, volume-button shutter, persistent settings, and an App Shortcut for quick launch. Also includes grid, horizon level, zebra clipping warnings, self-timer, EV compensation, anti-shake shutter, RAW bracketing, and last-shot details.
+Adds a redesigned camera control grid with manual exposure, white balance, lens selection, AF/AE lock, self-timer, grid, level, tap metering, RAW bracketing, zebra warnings, last-shot details, volume-button shutter, and an App Shortcut for quick launch.

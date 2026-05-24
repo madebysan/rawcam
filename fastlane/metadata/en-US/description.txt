@@ -15,17 +15,17 @@ WHAT YOU GET
 • Manual exposure controls for ISO and shutter speed
 • EV compensation for auto exposure
 • Separate focus and exposure targeting
+• AF/AE lock from the tools grid
 • White balance controls with presets and Kelvin adjustment
 • Lens selector with RAW availability
 • Optional grid, horizon level, and self-timer
 • Volume-button shutter
-• Anti-shake shutter that waits for steadier hands
 • Three-shot RAW exposure bracketing
 • Last-shot details for lens, ISO, shutter, EV, white balance, and clipping
 • App Shortcut for Shortcuts, Siri, Spotlight, and Action Button launch
 • Flash with off, on, and auto modes
 • Front and back camera switch
-• Live histogram with highlight and shadow clipping warnings
+• Live histogram with orange edge bars for clipped shadows or highlights
 • Zebra stripes when highlights are clipping
 • Portrait orientation, designed for one-handed use
 

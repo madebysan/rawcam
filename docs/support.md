@@ -29,13 +29,13 @@ To your iPhone's photo library, the same place the regular Camera app saves to. 
 
 ### How do I focus on something specific?
 
-Tap anywhere on the preview to focus there. The reticle shows where the camera is focused. Long-press to lock both autofocus and auto-exposure on that point — useful when you want to recompose without the exposure shifting.
+Tap anywhere on the preview to focus there. The reticle shows where the camera is focused. Use `LOCK` in the tools grid to hold the current autofocus and auto-exposure state. Long-press still works as a point-based focus lock shortcut.
 
 ### How do manual controls work?
 
 Tap `EXP` above the shutter to adjust exposure. In auto mode, the slider changes EV compensation. Switch to manual mode for ISO and shutter controls. Tap `WB` to choose auto white balance, a preset, or a Kelvin value.
 
-When focus is locked, the `AF/AE` badge turns yellow. Tap it to return to autofocus.
+When focus or exposure is locked, the `LOCK` tile turns amber. Tap it again to return to continuous autofocus and auto-exposure.
 
 ### How does the lens selector work?
 
@@ -49,13 +49,13 @@ The `TAP` control switches what a preview tap does. `FOCUS` sets focus. `METER` 
 
 `GRID` adds a rule-of-thirds overlay. `LEVEL` shows a horizon indicator in the middle of the preview. `TIMER` cycles between off, 3 seconds, and 10 seconds.
 
-### What are SHAKE, BRKT, and LAST?
+### What are LOCK, BRKT, and last-shot details?
 
-`SHAKE` waits until the phone is steadier before taking the shot. If the phone does not settle quickly, RawCam still fires after a short wait.
+`LOCK` holds the current autofocus and auto-exposure state until you tap it again.
 
 `BRKT` captures three RAW photos at different EV values: one darker, one normal, one brighter. It only works in RAW mode with auto exposure.
 
-`LAST` shows the settings from the last saved capture: mode, lens, ISO, shutter, EV, white balance, and whether the live histogram was clipping. After a successful save, a compact last-shot strip also appears above the controls.
+After a successful save, the compact last-shot strip opens a sheet with mode, lens, ISO, shutter, EV, white balance, clipping state, and a preview when RawCam has one.
 
 ### Can I use the volume buttons as the shutter?
 
@@ -71,7 +71,7 @@ Apple caps third-party RAW capture at 12MP on iPhone. The 48MP full sensor reado
 
 ### What does the histogram show?
 
-An 8-bar readout from shadows on the left to highlights on the right. Tall bars on either edge mean detail is being clipped (lost) at that end of the tonal range. RawCam tints the edge bar and shows `CLIP` when shadows or highlights are overloaded. If highlights are clipping, yellow zebra stripes appear over the preview area as a stronger warning.
+An 8-bar readout from shadows on the left to highlights on the right. If an edge clips, that edge bar turns orange. If highlights clip, zebra stripes appear over the preview as a stronger warning.
 
 ### Why does my photo look darker or flatter than the Camera app?
 

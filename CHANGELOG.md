@@ -8,14 +8,14 @@ Updated every session via `/save-session`.
 ## 2026-05-23
 
 ### Features
-- **Manual controls drawer:** exposed the existing manual exposure and white-balance controls above the shutter, with ISO, shutter speed, presets, Kelvin adjustment, and a tappable AF/AE unlock badge.
-- **Capture aids:** added grid, horizon level, clipping warnings, self-timer, EV compensation, and separate focus/exposure targeting.
-- **Shooting workflow:** added anti-shake shutter, three-shot RAW bracketing, and a last-shot details panel.
+- **Manual controls drawer:** shipped a 3x3 tools grid with manual exposure, white balance, lens selection, AF/AE lock, self-timer, grid, level, tap targeting, and RAW bracketing.
+- **Capture aids:** added horizon level, self-timer, EV compensation, separate focus/exposure targeting, and zebra warnings.
+- **Shooting workflow:** added three-shot RAW bracketing, volume-button shutter, a last-shot details panel, and an App Shortcut for Shortcuts/Siri/Spotlight/Action Button launch.
 - **Competitor parity batch:** added lens selection, volume-button shutter, persistent settings, a last-shot session strip, and an App Shortcut for Shortcuts/Siri/Action Button launch.
 - **Focus peaking rollback:** removed the first focus-peaking implementation after real-device testing showed it could destabilize the camera UI.
 - **Focus lock stabilization:** removed the duplicate live preview loupe and changed long-press to focus-only lock so it cannot black out the preview by hard-locking exposure.
-- **Zebra clipping warning:** added lightweight yellow zebra stripes when highlights clip, giving `TAP METER` users a stronger exposure warning without live image overlays.
-- **Info sheet refresh:** updated the in-app help sheet so it matches the current controls: focus-only lock, metering, zebra warnings, lens switching, capture aids, volume shutter, and App Shortcut launch.
+- **Histogram clipping warning:** replaced the `CLIP` badge with orange edge bars inside the histogram, plus zebra stripes when highlights clip.
+- **Info sheet refresh:** shortened the in-app help sheet, made cards full-width, linked the footer credit, and synced icons with the live controls.
 - **Control design polish:** applied a Not Boring-inspired pass to the camera controls with amber identity color, icon/readout chips, dimensional active states, a richer drawer surface, and a more instrument-like shutter.
 - **Collapsible tools drawer:** moved the control toggle into the shutter row beside the photo thumbnail. Tap it or swipe up to reveal controls, then tap again or swipe down to hide them and restore preview space.
 
