@@ -20,6 +20,29 @@ private enum Theme {
     static let tapSpring = Animation.spring(response: 0.28, dampingFraction: 0.62)
 }
 
+private extension Image {
+    func bottomUtilityIcon() -> some View {
+        self
+            .font(.system(size: 22, weight: .semibold))
+            .foregroundColor(.white)
+            .frame(width: 54, height: 54)
+            .background(
+                LinearGradient(
+                    colors: [Theme.surfaceHigh.opacity(0.74), Theme.surface.opacity(0.92)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ),
+                in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
+            )
+            .shadow(color: .black.opacity(0.26), radius: 10, y: 4)
+            .contentShape(Rectangle())
+    }
+}
+
 // MARK: - Camera View
 
 struct CameraView: View {
@@ -532,35 +555,28 @@ struct CameraView: View {
                     triggerCapture()
                 }
 
-                // Right — equal spacers: [space] info [space] flip
-                HStack(spacing: 0) {
-                    Spacer()
+                // Right — info + flip, visually matched to the left utilities
+                HStack(spacing: 12) {
                     Button {
                         hapticMedium.impactOccurred()
                         showHelp = true
                     } label: {
                         Image(systemName: "info.circle")
-                            .font(.system(size: 22, weight: .medium))
-                            .foregroundColor(.white)
-                            .shadow(color: .black.opacity(0.5), radius: 4)
-                            .frame(width: 44, height: 54)
-                            .contentShape(Rectangle())
+                            .bottomUtilityIcon()
                     }
-                    Spacer()
+                    .buttonStyle(DimPressStyle())
+
                     Button {
                         hapticMedium.impactOccurred()
                         hapticMedium.prepare()
                         camera.switchCamera()
                     } label: {
                         Image(systemName: "arrow.triangle.2.circlepath.camera")
-                            .font(.system(size: 22, weight: .medium))
-                            .foregroundColor(.white)
-                            .shadow(color: .black.opacity(0.5), radius: 4)
-                            .frame(width: 44, height: 54)
-                            .contentShape(Rectangle())
+                            .bottomUtilityIcon()
                     }
+                    .buttonStyle(DimPressStyle())
                 }
-                .frame(maxWidth: .infinity)
+                .frame(maxWidth: .infinity, alignment: .trailing)
             }
             .simultaneousGesture(controlsRevealGesture)
         }
@@ -577,24 +593,8 @@ struct CameraView: View {
                 }
             }
         } label: {
-            ZStack(alignment: .topTrailing) {
-                Image(systemName: controlsExpanded ? "slider.horizontal.3" : "slider.horizontal.3")
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundColor(controlsExpanded ? Theme.bg : Theme.accent)
-                    .frame(width: 52, height: 52)
-                    .background(ControlChipBackground(isActive: controlsExpanded))
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    .shadow(color: controlsExpanded ? Theme.accent.opacity(0.28) : .black.opacity(0.26), radius: 10, y: 4)
-                    .contentShape(Rectangle())
-
-                if activeToolDots.contains(true) {
-                    Circle()
-                        .fill(Theme.accent)
-                        .frame(width: 8, height: 8)
-                        .overlay(Circle().stroke(Color.black.opacity(0.45), lineWidth: 1))
-                        .offset(x: -5, y: 5)
-                }
-            }
+            Image(systemName: "slider.horizontal.3")
+                .bottomUtilityIcon()
         }
         .buttonStyle(DimPressStyle())
         .accessibilityLabel(controlsExpanded ? "Hide controls" : "Show controls")
@@ -870,15 +870,6 @@ struct CameraView: View {
                     }
                 }
             }
-    }
-
-    private var activeToolDots: [Bool] {
-        [
-            selfTimerSeconds > 0,
-            showGrid || showLevel,
-            tapTarget == .meter,
-            bracketEnabled
-        ]
     }
 
     private var timerSummary: String {
