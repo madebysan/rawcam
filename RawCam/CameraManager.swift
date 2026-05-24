@@ -152,6 +152,9 @@ class CameraManager: NSObject, ObservableObject {
     @Published var maxISO: Float = 1600
     @Published var minShutter: Double = 1.0 / 8000.0
     @Published var maxShutter: Double = 1.0
+    @Published var zoomFactor: CGFloat = 1.0
+    @Published var minZoomFactor: CGFloat = 1.0
+    @Published var maxZoomFactor: CGFloat = 1.0
 
     // White balance
     @Published var whiteBalancePreset: WhiteBalancePreset = .auto
@@ -387,6 +390,10 @@ class CameraManager: NSObject, ObservableObject {
             : availableVideoFormats[nextIndex]
     }
 
+    func cyclePhotoFormat() {
+        captureMode = captureMode == .raw ? .coverage : .raw
+    }
+
     func resetControlsToDefaults() {
         guard let device = currentDevice else { return }
 
@@ -404,6 +411,9 @@ class CameraManager: NSObject, ObservableObject {
             if device.activeFormat.isVideoHDRSupported {
                 device.automaticallyAdjustsVideoHDREnabled = true
             }
+            device.videoZoomFactor = CGFloat(1.0).clamped(
+                to: device.minAvailableVideoZoomFactor...device.maxAvailableVideoZoomFactor
+            )
             setBestAvailableColorSpace([.sRGB], for: device)
             device.unlockForConfiguration()
         } catch {
@@ -479,6 +489,9 @@ class CameraManager: NSObject, ObservableObject {
         maxISO = device.activeFormat.maxISO
         minShutter = CMTimeGetSeconds(device.activeFormat.minExposureDuration)
         maxShutter = CMTimeGetSeconds(device.activeFormat.maxExposureDuration)
+        minZoomFactor = device.minAvailableVideoZoomFactor
+        maxZoomFactor = min(device.maxAvailableVideoZoomFactor, 10.0)
+        zoomFactor = device.videoZoomFactor.clamped(to: minZoomFactor...maxZoomFactor)
         minExposureBias = device.minExposureTargetBias
         maxExposureBias = device.maxExposureTargetBias
         exposureBias = device.exposureTargetBias.clamped(to: minExposureBias...maxExposureBias)
@@ -542,6 +555,35 @@ class CameraManager: NSObject, ObservableObject {
         showExposureIndicator = false
         exposureBias = 0
         setExposureBias(0)
+    }
+
+    func cycleLens() {
+        guard !isUsingFrontCamera, !availableLenses.isEmpty else { return }
+        guard let selectedLensID,
+              let currentIndex = availableLenses.firstIndex(where: { $0.id == selectedLensID }) else {
+            switchLens(to: availableLenses[0])
+            return
+        }
+
+        let nextIndex = availableLenses.index(after: currentIndex)
+        let lens = nextIndex == availableLenses.endIndex
+            ? availableLenses[0]
+            : availableLenses[nextIndex]
+        switchLens(to: lens)
+    }
+
+    func setZoomFactor(_ value: CGFloat) {
+        guard let device = currentDevice else { return }
+        let clampedZoom = value.clamped(to: minZoomFactor...maxZoomFactor)
+
+        do {
+            try device.lockForConfiguration()
+            device.videoZoomFactor = clampedZoom
+            device.unlockForConfiguration()
+            zoomFactor = clampedZoom
+        } catch {
+            errorMessage = "Cannot zoom: \(error.localizedDescription)"
+        }
     }
 
     // MARK: - Flash
@@ -1516,5 +1558,11 @@ extension Float {
 extension Double {
     func clamped(to range: ClosedRange<Double>) -> Double {
         return min(max(self, range.lowerBound), range.upperBound)
+    }
+}
+
+extension CGFloat {
+    func clamped(to range: ClosedRange<CGFloat>) -> CGFloat {
+        return Swift.min(Swift.max(self, range.lowerBound), range.upperBound)
     }
 }

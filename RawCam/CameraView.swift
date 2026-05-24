@@ -73,7 +73,6 @@ struct CameraView: View {
     private enum ControlPanel {
         case exposure
         case whiteBalance
-        case lens
     }
 
     private enum TapTarget {
@@ -102,6 +101,7 @@ struct CameraView: View {
     @State private var countdown: Int?
     @State private var showLastDetails = false
     @State private var showMediaRoll = false
+    @State private var pinchStartZoom: CGFloat?
 
     // Shutter animation
     @State private var shutterPulse = 0
@@ -131,6 +131,7 @@ struct CameraView: View {
                     .onAppear { viewSize = geo.size }
                     .onChange(of: geo.size) { _, s in viewSize = s }
                     .gesture(focusGestures)
+                    .simultaneousGesture(zoomGesture)
             }
             .ignoresSafeArea()
 
@@ -269,6 +270,20 @@ struct CameraView: View {
         )
     }
 
+    private var zoomGesture: some Gesture {
+        MagnifyGesture()
+            .onChanged { value in
+                if pinchStartZoom == nil {
+                    pinchStartZoom = camera.zoomFactor
+                }
+                let baseZoom = pinchStartZoom ?? camera.zoomFactor
+                camera.setZoomFactor(baseZoom * value.magnification)
+            }
+            .onEnded { _ in
+                pinchStartZoom = nil
+            }
+    }
+
     // MARK: - Top Bar
 
     private var topBar: some View {
@@ -369,76 +384,6 @@ struct CameraView: View {
         .padding(3)
         .background(.black.opacity(0.38), in: Capsule())
         .overlay(Capsule().strokeBorder(Color.white.opacity(0.10), lineWidth: 1))
-    }
-
-    @ViewBuilder
-    private var formatBadge: some View {
-        switch appCaptureMode {
-        case .photo:
-            photoModeBadge
-        case .video:
-            videoModeBadge
-        }
-    }
-
-    private var photoModeBadge: some View {
-        Button {
-            hapticMedium.impactOccurred()
-            hapticMedium.prepare()
-            withAnimation(Theme.tapSpring) {
-                camera.captureMode = camera.captureMode == .raw ? .coverage : .raw
-            }
-        } label: {
-            HStack(spacing: 2) {
-                ForEach(CaptureMode.allCases, id: \.self) { mode in
-                    Text(mode.rawValue)
-                        .font(.system(size: 11, weight: .bold, design: .monospaced))
-                        .foregroundColor(camera.captureMode == mode ? Theme.bg : .white)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 5)
-                        .background(
-                            camera.captureMode == mode ? modeAccent : Color.clear,
-                            in: Capsule()
-                        )
-                }
-            }
-            .padding(3)
-            .frame(minHeight: 36)
-            .background(.black.opacity(0.38), in: Capsule())
-            .overlay(Capsule().strokeBorder(Color.white.opacity(0.10), lineWidth: 1))
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-    }
-
-    private var videoModeBadge: some View {
-        Button {
-            hapticMedium.impactOccurred()
-            hapticMedium.prepare()
-            withAnimation(Theme.tapSpring) {
-                camera.cycleVideoFormat()
-            }
-        } label: {
-            HStack(spacing: 8) {
-                Circle()
-                    .fill(camera.isRecordingVideo ? Color.red : Theme.accent)
-                    .frame(width: 7, height: 7)
-                Text(camera.isRecordingVideo ? recordingElapsedText : camera.selectedVideoFormat.rawValue)
-                    .font(.system(size: 11, weight: .bold, design: .monospaced))
-                    .foregroundColor(.white)
-                    .tracking(1)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.72)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .frame(minHeight: 36)
-            .background(.black.opacity(0.38), in: Capsule())
-            .overlay(Capsule().strokeBorder(Color.white.opacity(0.10), lineWidth: 1))
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .disabled(camera.isRecordingVideo || camera.availableVideoFormats.count <= 1)
     }
 
     private var modeAccent: Color {
@@ -649,10 +594,7 @@ struct CameraView: View {
             .frame(height: 28)
             .animation(Theme.tapSpring, value: camera.showSavedConfirmation)
 
-            HStack(spacing: 10) {
-                appModeBadge
-                formatBadge
-            }
+            appModeBadge
             .frame(maxWidth: .infinity, alignment: .center)
             .padding(.bottom, 2)
 
@@ -684,16 +626,9 @@ struct CameraView: View {
                     triggerCapture()
                 }
 
-                // Right — info + flip, visually matched to the left utilities
+                // Right — zoom selection + flip, visually matched to the left utilities
                 HStack(spacing: 12) {
-                    Button {
-                        hapticMedium.impactOccurred()
-                        showHelp = true
-                    } label: {
-                        Image(systemName: "info.circle")
-                            .bottomUtilityIcon()
-                    }
-                    .buttonStyle(DimPressStyle())
+                    lensZoomButton
 
                     Button {
                         hapticMedium.impactOccurred()
@@ -729,6 +664,34 @@ struct CameraView: View {
         .accessibilityLabel(controlsExpanded ? "Hide controls" : "Show controls")
     }
 
+    private var lensZoomButton: some View {
+        Button {
+            hapticMedium.impactOccurred()
+            hapticMedium.prepare()
+            camera.cycleLens()
+        } label: {
+            Text(camera.isUsingFrontCamera ? "FR" : activeLensSummary)
+                .font(.system(size: 12, weight: .bold, design: .monospaced))
+                .foregroundColor(.white)
+                .frame(width: 54, height: 54)
+                .background(
+                    LinearGradient(
+                        colors: [Color.black.opacity(0.34), Color.black.opacity(0.52)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
+                )
+                .shadow(color: .black.opacity(0.26), radius: 10, y: 4)
+        }
+        .buttonStyle(DimPressStyle())
+        .disabled(camera.isUsingFrontCamera || camera.availableLenses.count <= 1)
+    }
+
     private var controlsDrawer: some View {
         VStack(spacing: 0) {
             controlStrip
@@ -743,10 +706,6 @@ struct CameraView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
 
-            if activePanel == .lens {
-                lensPanel
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-            }
         }
         .padding(.vertical, 6)
         .background(
@@ -790,11 +749,11 @@ struct CameraView: View {
                 )
 
                 controlChip(
-                    icon: FeatureIcon.lens,
-                    title: "LENS",
-                    value: activeLensSummary,
-                    isActive: activePanel == .lens,
-                    action: { togglePanel(.lens) }
+                    icon: "questionmark.circle",
+                    title: "HELP",
+                    value: "OPEN",
+                    isActive: false,
+                    action: { showHelp = true }
                 )
             }
 
@@ -847,6 +806,14 @@ struct CameraView: View {
             if appCaptureMode == .photo {
                 HStack(spacing: 8) {
                     controlChip(
+                        icon: "camera",
+                        title: "FORMAT",
+                        value: camera.captureMode.rawValue,
+                        isActive: camera.captureMode == .coverage,
+                        action: { camera.cyclePhotoFormat() }
+                    )
+
+                    controlChip(
                         icon: FeatureIcon.timer,
                         title: "TIMER",
                         value: timerSummary,
@@ -861,10 +828,6 @@ struct CameraView: View {
                         isActive: bracketEnabled,
                         action: { bracketEnabled.toggle() }
                     )
-
-                    Color.clear
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 46)
                 }
             } else {
                 HStack(spacing: 8) {
