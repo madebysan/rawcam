@@ -1,14 +1,20 @@
-<img src="assets/app-icon.png" width="128" height="128" alt="RawCam app icon">
+<p><img src="assets/app-icon.png" width="128" height="128" alt="RawCam app icon"></p>
 
-# RawCam
+<h1>RawCam</h1>
 
-A minimal iOS camera. Saves only the sensor's raw DNG.
+<p>A minimal iOS camera. Saves only the sensor's raw DNG.</p>
 
-**v1.1** · iOS 17+
+<p><strong>v1.1</strong> · iOS 17+</p>
 
-<a href="https://apps.apple.com/us/app/rawcam-raw-dng-camera/id6765531876">
-  <img src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg" alt="Download on the App Store" height="50">
-</a>
+<p>
+  <img src="https://img.shields.io/badge/Swift-f05138" alt="Swift">
+  <img src="https://img.shields.io/badge/SwiftUI-0066cc" alt="SwiftUI">
+  <img src="https://img.shields.io/badge/iOS-000000" alt="iOS">
+</p>
+
+<p>
+  <a href="https://apps.apple.com/us/app/rawcam-raw-dng-camera/id6765531876"><img src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg" alt="Download on the App Store" height="50"></a>
+</p>
 
 ![RawCam interface, info panel, and a side-by-side comparison of the same scene captured with RawCam and the iOS Camera app](assets/screenshot.png)
 
