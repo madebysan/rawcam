@@ -408,7 +408,7 @@ struct CameraView: View {
                                 .font(.system(size: 9, weight: .bold, design: .monospaced))
                                 .tracking(0.5)
                         }
-                        .foregroundColor(camera.whiteBalancePreset == preset ? Theme.accent : Theme.textSecondary)
+                        .foregroundColor(camera.whiteBalancePreset == preset ? Theme.bg : Theme.textSecondary)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 8)
                         .background(ControlChipBackground(isActive: camera.whiteBalancePreset == preset))
