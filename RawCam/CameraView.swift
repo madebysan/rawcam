@@ -1513,25 +1513,49 @@ struct HelpSheet: View {
                     helpCard(
                         icon: "camera.aperture",
                         title: "WHY RAWCAM",
-                        body: "RawCam captures photos as unprocessed RAW DNG files straight from your iPhone's sensor. No Smart HDR, no Deep Fusion, no Night Mode, no AI noise reduction, no sharpening. Open the DNG in Lightroom or Darkroom and you get 2-3 extra stops of recovery the JPEG version never had."
+                        body: "RawCam saves RAW DNG files from the sensor path before Apple's normal photo pipeline bakes in sharpening, denoising, tone mapping, Smart HDR, or Deep Fusion. Edit the DNG later in Lightroom, Darkroom, Capture One, or another RAW editor."
                     )
 
                     helpCard(
                         icon: "arrow.triangle.branch",
                         title: "RAW vs RAW+JPG",
-                        body: "RAW saves a single DNG file. RAW+JPG captures the same frame twice: one clean DNG and one Apple-processed JPEG, saved as two separate photos. Great for comparing what Apple does to your shots."
+                        body: "RAW saves one DNG. RAW+JPG saves a DNG and an Apple-processed JPEG as separate photos, so you can compare the untouched file against the phone's finished version."
                     )
 
                     helpCard(
                         icon: "hand.tap",
-                        title: "FOCUS & LOCK",
-                        body: "Tap the preview to focus. Long-press to lock both focus and exposure. Tap the yellow AF/AE badge in the panel to unlock."
+                        title: "FOCUS & METER",
+                        body: "Tap the preview to focus. Long-press to lock focus only. Switch TAP to METER when you want taps to set exposure instead. The yellow AE target shows the metering point."
+                    )
+
+                    helpCard(
+                        icon: "line.3.horizontal.decrease",
+                        title: "HISTOGRAM & ZEBRA",
+                        body: "The top-left histogram shows shadows on the left and highlights on the right. If highlights clip, RawCam shows CLIP and yellow zebra stripes over the preview area."
+                    )
+
+                    helpCard(
+                        icon: "camera.filters",
+                        title: "LENS & EXPOSURE",
+                        body: "Use LENS to switch supported rear cameras. EXP gives you EV control in auto mode, or ISO and shutter when manual exposure is enabled. WB controls white balance presets and Kelvin."
+                    )
+
+                    helpCard(
+                        icon: "timer",
+                        title: "CAPTURE AIDS",
+                        body: "GRID and LEVEL help composition. TIMER gives you 3s or 10s delay. SHAKE waits briefly for steadier hands. BRKT saves three RAW frames at different EV values."
+                    )
+
+                    helpCard(
+                        icon: "speaker.wave.2",
+                        title: "SHUTTER SHORTCUTS",
+                        body: "Tap the shutter or use the iPhone volume buttons. RawCam also exposes an Open Camera shortcut for Shortcuts, Siri, Spotlight, and Action Button workflows."
                     )
 
                     helpCard(
                         icon: "exclamationmark.triangle",
                         title: "LIMITATIONS",
-                        body: "iOS caps third-party RAW at 12MP (Apple locks 48MP to their own camera). Lens correction always runs at the hardware level. These are iOS limitations, not app limitations."
+                        body: "iOS caps third-party RAW capture at 12MP. Apple's own Camera app keeps exclusive access to the full 48MP RAW path. Lens correction can also happen at the hardware level."
                     )
 
                     // Credit

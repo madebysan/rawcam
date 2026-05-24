@@ -15,6 +15,7 @@ Updated every session via `/save-session`.
 - **Focus peaking rollback:** removed the first focus-peaking implementation after real-device testing showed it could destabilize the camera UI.
 - **Focus lock stabilization:** removed the duplicate live preview loupe and changed long-press to focus-only lock so it cannot black out the preview by hard-locking exposure.
 - **Zebra clipping warning:** added lightweight yellow zebra stripes when highlights clip, giving `TAP METER` users a stronger exposure warning without live image overlays.
+- **Info sheet refresh:** updated the in-app help sheet so it matches the current controls: focus-only lock, metering, zebra warnings, lens switching, capture aids, volume shutter, and App Shortcut launch.
 
 ### Docs
 - **Feature copy:** updated README, support docs, backlog, and App Store metadata for the new capture controls.
