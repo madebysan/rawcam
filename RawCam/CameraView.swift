@@ -6,17 +6,18 @@ import MediaPlayer
 // MARK: - Theme
 
 private enum Theme {
-    static let bg          = Color(red: 0.05, green: 0.05, blue: 0.05)
-    static let panel       = Color(red: 0.09, green: 0.09, blue: 0.09)
-    static let surface     = Color(red: 0.14, green: 0.14, blue: 0.14)
-    static let surfaceHigh = Color(red: 0.20, green: 0.20, blue: 0.20)
-    static let accent      = Color.white
-    static let accentCov   = Color.white
+    static let bg          = Color(red: 0.04, green: 0.04, blue: 0.04)
+    static let panel       = Color(red: 0.07, green: 0.07, blue: 0.07)
+    static let surface     = Color(red: 0.12, green: 0.12, blue: 0.12)
+    static let surfaceHigh = Color(red: 0.18, green: 0.18, blue: 0.18)
+    static let accent      = Color(red: 1.0, green: 0.62, blue: 0.04)
+    static let accentHot   = Color(red: 1.0, green: 0.82, blue: 0.28)
+    static let accentCov   = Color(red: 1.0, green: 0.62, blue: 0.04)
     static let textPrimary   = Color.white
     static let textSecondary = Color(white: 0.55)
     static let textTertiary  = Color(white: 0.30)
 
-    static let tapSpring = Animation.spring(response: 0.25, dampingFraction: 0.6)
+    static let tapSpring = Animation.spring(response: 0.28, dampingFraction: 0.62)
 }
 
 // MARK: - Camera View
@@ -259,9 +260,14 @@ struct CameraView: View {
                     .tracking(0.8)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 3)
-                    .background(Color.yellow, in: Capsule())
+                    .background(Theme.accent, in: Capsule())
+                    .shadow(color: Theme.accent.opacity(0.4), radius: 10)
             }
         }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 7)
+        .background(.black.opacity(0.36), in: Capsule())
+        .overlay(Capsule().strokeBorder(Color.white.opacity(0.08), lineWidth: 1))
     }
 
     private var modeBadge: some View {
@@ -287,6 +293,8 @@ struct CameraView: View {
             }
             .padding(3)
             .frame(minHeight: 36)
+            .background(.black.opacity(0.38), in: Capsule())
+            .overlay(Capsule().strokeBorder(Color.white.opacity(0.10), lineWidth: 1))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -402,12 +410,7 @@ struct CameraView: View {
                         .foregroundColor(camera.whiteBalancePreset == preset ? Theme.accent : Theme.textSecondary)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 8)
-                        .background(
-                            camera.whiteBalancePreset == preset
-                                ? Theme.accent.opacity(0.12)
-                                : Theme.surface,
-                            in: RoundedRectangle(cornerRadius: 8)
-                        )
+                        .background(ControlChipBackground(isActive: camera.whiteBalancePreset == preset))
                     }
                     .buttonStyle(DimPressStyle())
                 }
@@ -578,11 +581,24 @@ struct CameraView: View {
             }
         }
         .padding(.vertical, 6)
-        .background(.black.opacity(0.58), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
+        .background(
+            LinearGradient(
+                colors: [
+                    Color.black.opacity(0.78),
+                    Theme.panel.opacity(0.82),
+                    Color.black.opacity(0.64)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            ),
+            in: RoundedRectangle(cornerRadius: 22, style: .continuous)
         )
+        .overlay(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.10), lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.45), radius: 22, y: 12)
+        .shadow(color: Theme.accent.opacity(0.10), radius: 22)
         .animation(Theme.tapSpring, value: activePanel)
     }
 
@@ -590,6 +606,7 @@ struct CameraView: View {
         VStack(spacing: 8) {
             HStack(spacing: 8) {
                 controlChip(
+                    icon: "plusminus",
                     title: "EXP",
                     value: exposureSummary,
                     isActive: activePanel == .exposure,
@@ -597,6 +614,7 @@ struct CameraView: View {
                 )
 
                 controlChip(
+                    icon: "thermometer.medium",
                     title: "WB",
                     value: whiteBalanceSummary,
                     isActive: activePanel == .whiteBalance,
@@ -604,6 +622,7 @@ struct CameraView: View {
                 )
 
                 controlChip(
+                    icon: "camera.aperture",
                     title: "LENS",
                     value: activeLensSummary,
                     isActive: activePanel == .lens,
@@ -615,6 +634,7 @@ struct CameraView: View {
 
             HStack(spacing: 8) {
                 controlChip(
+                    icon: "timer",
                     title: "TIMER",
                     value: timerSummary,
                     isActive: selfTimerSeconds > 0,
@@ -622,6 +642,7 @@ struct CameraView: View {
                 )
 
                 controlChip(
+                    icon: "grid",
                     title: "GRID",
                     value: showGrid ? "ON" : "OFF",
                     isActive: showGrid,
@@ -629,6 +650,7 @@ struct CameraView: View {
                 )
 
                 controlChip(
+                    icon: "level",
                     title: "LEVEL",
                     value: showLevel ? "ON" : "OFF",
                     isActive: showLevel,
@@ -636,6 +658,7 @@ struct CameraView: View {
                 )
 
                 controlChip(
+                    icon: tapTarget == .meter ? "scope" : "viewfinder",
                     title: "TAP",
                     value: tapTarget == .meter ? "METER" : "FOCUS",
                     isActive: tapTarget == .meter,
@@ -645,6 +668,7 @@ struct CameraView: View {
 
             HStack(spacing: 8) {
                 controlChip(
+                    icon: "hand.raised",
                     title: "SHAKE",
                     value: antiShakeEnabled ? "ON" : "OFF",
                     isActive: antiShakeEnabled,
@@ -652,6 +676,7 @@ struct CameraView: View {
                 )
 
                 controlChip(
+                    icon: "square.stack.3d.down.right",
                     title: "BRKT",
                     value: bracketEnabled ? "3 RAW" : "OFF",
                     isActive: bracketEnabled,
@@ -659,6 +684,7 @@ struct CameraView: View {
                 )
 
                 controlChip(
+                    icon: "info.square",
                     title: "LAST",
                     value: camera.lastCaptureDetails == nil ? "NONE" : "VIEW",
                     isActive: showLastDetails,
@@ -672,6 +698,7 @@ struct CameraView: View {
                 )
 
                 controlChip(
+                    icon: "speaker.wave.2",
                     title: "VOL",
                     value: "SHUT",
                     isActive: false,
@@ -705,10 +732,7 @@ struct CameraView: View {
                         .foregroundColor(isSelected ? Theme.bg : Theme.textPrimary)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 10)
-                        .background(
-                            isSelected ? Theme.accent : Theme.surface,
-                            in: RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        )
+                        .background(ControlChipBackground(isActive: isSelected))
                     }
                     .buttonStyle(DimPressStyle())
                 }
@@ -733,28 +757,32 @@ struct CameraView: View {
             hapticMedium.prepare()
             camera.unlockFocus()
         } label: {
-            VStack(spacing: 2) {
-                Text("AF/AE")
-                    .font(.system(size: 9, weight: .bold, design: .monospaced))
-                    .tracking(1)
+            let isLocked = camera.isFocusLocked || camera.isExposureLocked
+            VStack(spacing: 4) {
+                HStack(spacing: 4) {
+                    Image(systemName: isLocked ? "lock.fill" : "viewfinder")
+                        .font(.system(size: 10, weight: .bold))
+                    Text("AF/AE")
+                        .font(.system(size: 8, weight: .bold, design: .monospaced))
+                        .tracking(0.9)
+                }
                 Text(camera.isFocusLocked || camera.isExposureLocked ? "LOCK" : "AUTO")
                     .font(.system(size: 12, weight: .bold, design: .monospaced))
             }
-            .foregroundColor(camera.isFocusLocked || camera.isExposureLocked ? .black : Theme.textSecondary)
+            .foregroundColor(isLocked ? Theme.bg : Theme.textSecondary)
             .frame(maxWidth: .infinity)
-            .frame(height: 44)
+            .frame(height: 46)
             .background(
-                camera.isFocusLocked || camera.isExposureLocked
-                    ? Color.yellow
-                    : Theme.surface,
-                in: RoundedRectangle(cornerRadius: 10, style: .continuous)
+                ControlChipBackground(isActive: isLocked)
             )
+            .shadow(color: isLocked ? Theme.accent.opacity(0.28) : .black.opacity(0.22), radius: isLocked ? 10 : 5, y: isLocked ? 0 : 3)
         }
         .buttonStyle(DimPressStyle())
         .disabled(!(camera.isFocusLocked || camera.isExposureLocked))
     }
 
     private func controlChip(
+        icon: String,
         title: String,
         value: String,
         isActive: Bool,
@@ -765,10 +793,16 @@ struct CameraView: View {
             hapticMedium.prepare()
             action()
         } label: {
-            VStack(spacing: 2) {
-                Text(title)
-                    .font(.system(size: 9, weight: .bold, design: .monospaced))
-                    .tracking(1)
+            VStack(spacing: 4) {
+                HStack(spacing: 4) {
+                    Image(systemName: icon)
+                        .font(.system(size: 10, weight: .bold))
+                    Text(title)
+                        .font(.system(size: 8, weight: .bold, design: .monospaced))
+                        .tracking(0.9)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                }
                 Text(value)
                     .font(.system(size: 12, weight: .bold, design: .monospaced))
                     .lineLimit(1)
@@ -776,11 +810,11 @@ struct CameraView: View {
             }
             .foregroundColor(isActive ? Theme.bg : Theme.textPrimary)
             .frame(maxWidth: .infinity)
-            .frame(height: 44)
+            .frame(height: 46)
             .background(
-                isActive ? Theme.accent : Theme.surface,
-                in: RoundedRectangle(cornerRadius: 10, style: .continuous)
+                ControlChipBackground(isActive: isActive)
             )
+            .shadow(color: isActive ? Theme.accent.opacity(0.28) : .black.opacity(0.22), radius: isActive ? 10 : 5, y: isActive ? 0 : 3)
         }
         .buttonStyle(DimPressStyle())
     }
@@ -917,17 +951,17 @@ struct ShutterButton: View {
     @Binding var pulseCount: Int
     let action: () -> Void
 
-    private let accent: Color = .white
+    private let accent: Color = Theme.accent
 
     var body: some View {
         ZStack {
             // Ambient glow
             Circle()
                 .fill(RadialGradient(
-                    colors: [accent.opacity(0.18), Color.clear],
+                    colors: [accent.opacity(0.26), accent.opacity(0.08), Color.clear],
                     center: .center, startRadius: 10, endRadius: 55
                 ))
-                .frame(width: 110, height: 110)
+                .frame(width: 118, height: 118)
 
             // Pulse rings
             PulseRing(delay: 0,    maxScale: 1.9, accent: accent, trigger: $pulseCount)
@@ -937,17 +971,33 @@ struct ShutterButton: View {
 
             // Outer ring
             Circle()
-                .strokeBorder(accent.opacity(0.35), lineWidth: 1.5)
-                .frame(width: 80, height: 80)
+                .strokeBorder(accent.opacity(0.55), lineWidth: 1.5)
+                .frame(width: 82, height: 82)
+
+            Circle()
+                .strokeBorder(Color.white.opacity(0.22), lineWidth: 7)
+                .frame(width: 76, height: 76)
 
             // Button body
             Circle()
-                .fill(accent)
+                .fill(
+                    RadialGradient(
+                        colors: [Color.white, accent.opacity(0.96), accent.opacity(0.82)],
+                        center: .topLeading,
+                        startRadius: 4,
+                        endRadius: 46
+                    )
+                )
                 .frame(width: 68, height: 68)
                 .shadow(color: accent.opacity(0.45), radius: 14)
                 .shadow(color: .black.opacity(0.4), radius: 4, y: 3)
                 .scaleEffect(isTakingPhoto ? 0.87 : 1.0)
                 .animation(.spring(response: 0.2, dampingFraction: 0.55), value: isTakingPhoto)
+
+            Image(systemName: mode == .coverage ? "plus" : "circle.fill")
+                .font(.system(size: mode == .coverage ? 16 : 8, weight: .bold))
+                .foregroundColor(.black.opacity(0.56))
+                .scaleEffect(isTakingPhoto ? 0.5 : 1)
         }
         .frame(width: 88, height: 88)
         .onTapGesture { action() }
@@ -987,6 +1037,43 @@ struct DimPressStyle: ButtonStyle {
             .opacity(configuration.isPressed ? 0.65 : 1.0)
             .scaleEffect(configuration.isPressed ? 0.96 : 1.0)
             .animation(.spring(response: 0.2, dampingFraction: 0.6), value: configuration.isPressed)
+    }
+}
+
+struct ControlChipBackground: View {
+    let isActive: Bool
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: 11, style: .continuous)
+            .fill(
+                LinearGradient(
+                    colors: isActive
+                        ? [Theme.accentHot, Theme.accent]
+                        : [Theme.surfaceHigh.opacity(0.72), Theme.surface.opacity(0.92)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 11, style: .continuous)
+                    .strokeBorder(
+                        isActive ? Color.white.opacity(0.34) : Color.white.opacity(0.07),
+                        lineWidth: 1
+                    )
+            )
+            .overlay(alignment: .topLeading) {
+                RoundedRectangle(cornerRadius: 11, style: .continuous)
+                    .stroke(Color.white.opacity(isActive ? 0.18 : 0.05), lineWidth: 1)
+                    .blur(radius: 0.5)
+                    .offset(x: 0.5, y: 0.5)
+                    .mask(
+                        LinearGradient(
+                            colors: [.white, .clear],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+            }
     }
 }
 
@@ -1042,7 +1129,7 @@ struct ExposureSlider: View {
             Slider(value: $value, in: range) { editing in
                 if !editing { onRelease() }
             }
-            .tint(Color(red: 1.0, green: 0.55, blue: 0.1))
+            .tint(Theme.accent)
 
             Text(valueText)
                 .font(.system(size: 13, weight: .bold, design: .monospaced))
