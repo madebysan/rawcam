@@ -761,21 +761,24 @@ struct CameraView: View {
 
     private var focusLockChip: some View {
         Button {
-            guard camera.isFocusLocked || camera.isExposureLocked else { return }
             hapticMedium.impactOccurred()
             hapticMedium.prepare()
-            camera.unlockFocus()
+            if camera.isFocusLocked || camera.isExposureLocked {
+                camera.unlockFocus()
+            } else {
+                camera.lockCurrentFocusAndExposure()
+            }
         } label: {
             let isLocked = camera.isFocusLocked || camera.isExposureLocked
             VStack(spacing: 4) {
                 HStack(spacing: 4) {
                     Image(systemName: isLocked ? "lock.fill" : "viewfinder")
                         .font(.system(size: 10, weight: .bold))
-                    Text("AF/AE")
+                    Text("LOCK")
                         .font(.system(size: 8, weight: .bold, design: .monospaced))
                         .tracking(0.9)
                 }
-                Text(camera.isFocusLocked || camera.isExposureLocked ? "LOCK" : "AUTO")
+                Text(isLocked ? "ON" : "AF/AE")
                     .font(.system(size: 12, weight: .bold, design: .monospaced))
             }
             .foregroundColor(isLocked ? Theme.bg : Theme.textSecondary)
@@ -787,7 +790,6 @@ struct CameraView: View {
             .shadow(color: isLocked ? Theme.accent.opacity(0.28) : .black.opacity(0.22), radius: isLocked ? 10 : 5, y: isLocked ? 0 : 3)
         }
         .buttonStyle(DimPressStyle())
-        .disabled(!(camera.isFocusLocked || camera.isExposureLocked))
     }
 
     private func controlChip(
@@ -1009,10 +1011,6 @@ struct ShutterButton: View {
                 .scaleEffect(isTakingPhoto ? 0.87 : 1.0)
                 .animation(.spring(response: 0.2, dampingFraction: 0.55), value: isTakingPhoto)
 
-            Image(systemName: mode == .coverage ? "plus" : "circle.fill")
-                .font(.system(size: mode == .coverage ? 16 : 8, weight: .bold))
-                .foregroundColor(.black.opacity(0.56))
-                .scaleEffect(isTakingPhoto ? 0.5 : 1)
         }
         .frame(width: 88, height: 88)
         .onTapGesture { action() }
@@ -1648,7 +1646,7 @@ struct HelpSheet: View {
                     helpCard(
                         icon: "hand.tap",
                         title: "FOCUS & METER",
-                        body: "Tap to focus. Long-press to lock focus. Switch TAP to METER when taps should set exposure instead."
+                        body: "Tap to focus. Use LOCK to hold current AF/AE. Switch TAP to METER when taps should set exposure."
                     )
 
                     helpCard(

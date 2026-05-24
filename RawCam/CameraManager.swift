@@ -512,6 +512,28 @@ class CameraManager: NSObject, ObservableObject {
         }
     }
 
+    func lockCurrentFocusAndExposure() {
+        guard let device = currentDevice else { return }
+
+        do {
+            try device.lockForConfiguration()
+            if device.isLockingFocusWithCustomLensPositionSupported || device.isFocusModeSupported(.locked) {
+                device.focusMode = .locked
+                isFocusLocked = true
+            }
+            if !isManualExposure && device.isExposureModeSupported(.locked) {
+                device.exposureMode = .locked
+                isExposureLocked = true
+            }
+            device.unlockForConfiguration()
+
+            showFocusIndicator = false
+            showExposureIndicator = false
+        } catch {
+            errorMessage = "Cannot lock AF/AE: \(error.localizedDescription)"
+        }
+    }
+
     func unlockFocus() {
         guard let device = currentDevice else { return }
 
