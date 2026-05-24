@@ -20,6 +20,22 @@ private enum Theme {
     static let tapSpring = Animation.spring(response: 0.28, dampingFraction: 0.62)
 }
 
+private enum FeatureIcon {
+    static let exposure = "plusminus"
+    static let whiteBalance = "thermometer.medium"
+    static let lens = "camera.aperture"
+    static let controls = "camera.filters"
+    static let focus = "viewfinder"
+    static let focusLock = "lock.fill"
+    static let timer = "timer"
+    static let grid = "grid"
+    static let level = "level"
+    static let meter = "scope"
+    static let bracket = "square.stack.3d.down.right"
+    static let histogram = "line.3.horizontal.decrease"
+    static let shutterShortcuts = "button.programmable"
+}
+
 private extension Image {
     func bottomUtilityIcon() -> some View {
         self
@@ -593,7 +609,7 @@ struct CameraView: View {
                 }
             }
         } label: {
-            Image(systemName: "slider.horizontal.3")
+            Image(systemName: FeatureIcon.controls)
                 .bottomUtilityIcon()
         }
         .buttonStyle(DimPressStyle())
@@ -645,7 +661,7 @@ struct CameraView: View {
         VStack(spacing: 8) {
             HStack(spacing: 8) {
                 controlChip(
-                    icon: "plusminus",
+                    icon: FeatureIcon.exposure,
                     title: "EXP",
                     value: exposureSummary,
                     isActive: activePanel == .exposure,
@@ -653,7 +669,7 @@ struct CameraView: View {
                 )
 
                 controlChip(
-                    icon: "thermometer.medium",
+                    icon: FeatureIcon.whiteBalance,
                     title: "WB",
                     value: whiteBalanceSummary,
                     isActive: activePanel == .whiteBalance,
@@ -661,7 +677,7 @@ struct CameraView: View {
                 )
 
                 controlChip(
-                    icon: "camera.aperture",
+                    icon: FeatureIcon.lens,
                     title: "LENS",
                     value: activeLensSummary,
                     isActive: activePanel == .lens,
@@ -673,7 +689,7 @@ struct CameraView: View {
                 focusLockChip
 
                 controlChip(
-                    icon: "timer",
+                    icon: FeatureIcon.timer,
                     title: "TIMER",
                     value: timerSummary,
                     isActive: selfTimerSeconds > 0,
@@ -681,7 +697,7 @@ struct CameraView: View {
                 )
 
                 controlChip(
-                    icon: "grid",
+                    icon: FeatureIcon.grid,
                     title: "GRID",
                     value: showGrid ? "ON" : "OFF",
                     isActive: showGrid,
@@ -691,7 +707,7 @@ struct CameraView: View {
 
             HStack(spacing: 8) {
                 controlChip(
-                    icon: "level",
+                    icon: FeatureIcon.level,
                     title: "LEVEL",
                     value: showLevel ? "ON" : "OFF",
                     isActive: showLevel,
@@ -699,7 +715,7 @@ struct CameraView: View {
                 )
 
                 controlChip(
-                    icon: tapTarget == .meter ? "scope" : "viewfinder",
+                    icon: tapTarget == .meter ? FeatureIcon.meter : FeatureIcon.focus,
                     title: "TAP",
                     value: tapTarget == .meter ? "METER" : "FOCUS",
                     isActive: tapTarget == .meter,
@@ -707,7 +723,7 @@ struct CameraView: View {
                 )
 
                 controlChip(
-                    icon: "square.stack.3d.down.right",
+                    icon: FeatureIcon.bracket,
                     title: "BRKT",
                     value: bracketEnabled ? "3 RAW" : "OFF",
                     isActive: bracketEnabled,
@@ -772,7 +788,7 @@ struct CameraView: View {
             let isLocked = camera.isFocusLocked || camera.isExposureLocked
             VStack(spacing: 4) {
                 HStack(spacing: 4) {
-                    Image(systemName: isLocked ? "lock.fill" : "viewfinder")
+                    Image(systemName: isLocked ? FeatureIcon.focusLock : FeatureIcon.focus)
                         .font(.system(size: 10, weight: .bold))
                     Text("LOCK")
                         .font(.system(size: 8, weight: .bold, design: .monospaced))
@@ -1635,31 +1651,31 @@ struct HelpSheet: View {
                         )
 
                         helpCard(
-                            icon: "hand.tap",
+                            icon: FeatureIcon.focus,
                             title: "FOCUS & METER",
                             body: "Tap to focus. Use LOCK to hold current AF/AE. Switch TAP to METER when taps should set exposure."
                         )
 
                         helpCard(
-                            icon: "line.3.horizontal.decrease",
+                            icon: FeatureIcon.histogram,
                             title: "HISTOGRAM & ZEBRA",
                             body: "The histogram shows shadows left and highlights right. CLIP and zebra stripes warn when highlights blow out."
                         )
 
                         helpCard(
-                            icon: "camera.filters",
+                            icon: FeatureIcon.controls,
                             title: "PRO CONTROLS",
                             body: "Use EXP, WB, and LENS for exposure, white balance, and rear-camera selection. Selected controls turn amber."
                         )
 
                         helpCard(
-                            icon: "timer",
+                            icon: FeatureIcon.timer,
                             title: "TOOLS GRID",
                             body: "The 3x3 grid holds AF/AE, TIMER, GRID, LEVEL, TAP, and BRKT. Swipe up to open, down to hide."
                         )
 
                         helpCard(
-                            icon: "speaker.wave.2",
+                            icon: FeatureIcon.shutterShortcuts,
                             title: "SHUTTER SHORTCUTS",
                             body: "Tap the shutter, press either volume button, or open RawCam from Shortcuts, Siri, Spotlight, or Action Button."
                         )
