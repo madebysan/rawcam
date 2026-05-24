@@ -5,6 +5,23 @@ Updated every session via `/save-session`.
 
 ---
 
+## 2026-05-24
+
+### Features
+- **Video capture sequence:** added Debug capability reporting, basic HEVC recording, format cycling, RawCam roll entries for videos, and lifecycle hardening for interruptions, backgrounding, storage, and pressure events.
+- **Video controls:** added video mode with elapsed recording state, hidden photo-only controls, `ZEBRA / FORMAT / AUDIO` in one row, and a microphone toggle that controls whether audio is attached before recording.
+- **In-app media roll:** changed the photo-library button into a RawCam roll for captures made in the app, with image/video previews and Photos handoff for tapped media.
+- **Camera control polish:** moved photo format into the controls drawer, promoted lens zoom selection into the main camera UI, added pinch-to-zoom, and added reset-all behavior.
+- **Photo controls:** added `ASPECT` framing guides and `STEADY` capture delay for handheld shots.
+- **Secondary actions:** separated `HELP`, `STATUS`, and `RESET` from the main control grid.
+
+### Build
+- Built, installed, and launched the latest Debug build on the connected iPhone.
+
+### Status: local QA build ready
+
+---
+
 ## 2026-05-23
 
 ### Features
