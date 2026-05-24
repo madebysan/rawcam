@@ -47,12 +47,10 @@ struct CameraView: View {
     @AppStorage("showGrid") private var showGrid = false
     @AppStorage("showLevel") private var showLevel = false
     @AppStorage("selfTimerSeconds") private var selfTimerSeconds = 0
-    @AppStorage("antiShakeEnabled") private var antiShakeEnabled = false
     @AppStorage("bracketEnabled") private var bracketEnabled = false
     @AppStorage("captureMode") private var persistedCaptureMode = CaptureMode.raw.rawValue
     @State private var controlsExpanded = false
     @State private var countdown: Int?
-    @State private var waitingForSteadyShot = false
     @State private var showLastDetails = false
 
     // Shutter animation
@@ -119,11 +117,6 @@ struct CameraView: View {
 
             if let countdown {
                 CountdownOverlay(value: countdown)
-                    .allowsHitTesting(false)
-            }
-
-            if waitingForSteadyShot {
-                SteadyShotOverlay(score: level.motionScore)
                     .allowsHitTesting(false)
             }
 
@@ -531,7 +524,7 @@ struct CameraView: View {
                 // Center — shutter, fixed width keeps it screen-centered
                 ShutterButton(
                     mode: camera.captureMode,
-                    isTakingPhoto: camera.isTakingPhoto || countdown != nil || waitingForSteadyShot,
+                    isTakingPhoto: camera.isTakingPhoto || countdown != nil,
                     pulseCount: $shutterPulse
                 ) {
                     hapticHeavy.impactOccurred()
@@ -674,11 +667,11 @@ struct CameraView: View {
                     isActive: activePanel == .lens,
                     action: { togglePanel(.lens) }
                 )
-
-                focusLockChip
             }
 
             HStack(spacing: 8) {
+                focusLockChip
+
                 controlChip(
                     icon: "timer",
                     title: "TIMER",
@@ -694,7 +687,9 @@ struct CameraView: View {
                     isActive: showGrid,
                     action: { showGrid.toggle() }
                 )
+            }
 
+            HStack(spacing: 8) {
                 controlChip(
                     icon: "level",
                     title: "LEVEL",
@@ -710,16 +705,6 @@ struct CameraView: View {
                     isActive: tapTarget == .meter,
                     action: { tapTarget = tapTarget == .focus ? .meter : .focus }
                 )
-            }
-
-            HStack(spacing: 8) {
-                controlChip(
-                    icon: "hand.raised",
-                    title: "SHAKE",
-                    value: antiShakeEnabled ? "ON" : "OFF",
-                    isActive: antiShakeEnabled,
-                    action: { antiShakeEnabled.toggle() }
-                )
 
                 controlChip(
                     icon: "square.stack.3d.down.right",
@@ -728,18 +713,6 @@ struct CameraView: View {
                     isActive: bracketEnabled,
                     action: { bracketEnabled.toggle() }
                 )
-
-                controlChip(
-                    icon: "speaker.wave.2.fill",
-                    title: "VOLUME",
-                    value: "SHUTTER",
-                    isActive: true,
-                    action: { camera.errorMessage = "Press a volume button to shoot" }
-                )
-
-                Color.clear
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 46)
             }
         }
         .padding(.horizontal, 10)
@@ -902,7 +875,7 @@ struct CameraView: View {
             selfTimerSeconds > 0,
             showGrid || showLevel,
             tapTarget == .meter,
-            antiShakeEnabled || bracketEnabled
+            bracketEnabled
         ]
     }
 
@@ -927,7 +900,7 @@ struct CameraView: View {
         }
 
         guard selfTimerSeconds > 0 else {
-            triggerSteadyOrCapture()
+            performCapture()
             return
         }
 
@@ -937,7 +910,7 @@ struct CameraView: View {
     private func runCountdown(_ value: Int) {
         guard value > 0 else {
             countdown = nil
-            triggerSteadyOrCapture()
+            performCapture()
             return
         }
 
@@ -945,30 +918,6 @@ struct CameraView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
             guard countdown == value else { return }
             runCountdown(value - 1)
-        }
-    }
-
-    private func triggerSteadyOrCapture() {
-        guard antiShakeEnabled else {
-            performCapture()
-            return
-        }
-
-        waitingForSteadyShot = true
-        waitForSteadyShot(attempt: 0)
-    }
-
-    private func waitForSteadyShot(attempt: Int) {
-        guard waitingForSteadyShot else { return }
-
-        if level.isSteady || attempt >= 20 {
-            waitingForSteadyShot = false
-            performCapture()
-            return
-        }
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            waitForSteadyShot(attempt: attempt + 1)
         }
     }
 
@@ -1419,30 +1368,6 @@ struct CountdownOverlay: View {
     }
 }
 
-struct SteadyShotOverlay: View {
-    let score: Double
-
-    var body: some View {
-        VStack(spacing: 10) {
-            ProgressView(value: min(max(1.0 - score * 8, 0), 1))
-                .progressViewStyle(.linear)
-                .tint(.yellow)
-                .frame(width: 130)
-
-            Text("HOLD STEADY")
-                .font(.system(size: 12, weight: .bold, design: .monospaced))
-                .tracking(1.5)
-                .foregroundColor(.black)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 7)
-                .background(Color.yellow, in: Capsule())
-        }
-        .padding(16)
-        .background(Color.black.opacity(0.55), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-    }
-}
-
 struct LastCaptureSheet: View {
     @Environment(\.dismiss) var dismiss
     let details: CaptureDetails?
@@ -1711,49 +1636,49 @@ struct HelpSheet: View {
                     helpCard(
                         icon: "camera.aperture",
                         title: "WHY RAWCAM",
-                        body: "RawCam saves RAW DNG files from the sensor path before Apple's normal photo pipeline bakes in sharpening, denoising, tone mapping, Smart HDR, or Deep Fusion. Edit the DNG later in Lightroom, Darkroom, Capture One, or another RAW editor."
+                        body: "RawCam saves RAW DNG files before iPhone processing bakes in sharpening, tone mapping, Smart HDR, or Deep Fusion."
                     )
 
                     helpCard(
                         icon: "arrow.triangle.branch",
                         title: "RAW vs RAW+JPG",
-                        body: "RAW saves one DNG. RAW+JPG saves a DNG and an Apple-processed JPEG as separate photos, so you can compare the untouched file against the phone's finished version."
+                        body: "RAW saves one DNG. RAW+JPG saves the DNG plus an Apple JPEG, so you can compare both versions."
                     )
 
                     helpCard(
                         icon: "hand.tap",
                         title: "FOCUS & METER",
-                        body: "Tap the preview to focus. Long-press to lock focus only. Switch TAP to METER when you want taps to set exposure instead. The yellow AE target shows the metering point."
+                        body: "Tap to focus. Long-press to lock focus. Switch TAP to METER when taps should set exposure instead."
                     )
 
                     helpCard(
                         icon: "line.3.horizontal.decrease",
                         title: "HISTOGRAM & ZEBRA",
-                        body: "The top-left histogram shows shadows on the left and highlights on the right. If highlights clip, RawCam shows CLIP and yellow zebra stripes over the preview area."
+                        body: "The histogram shows shadows left and highlights right. CLIP and zebra stripes warn when highlights blow out."
                     )
 
                     helpCard(
                         icon: "camera.filters",
-                        title: "LENS & EXPOSURE",
-                        body: "Use LENS to switch supported rear cameras. EXP gives you EV control in auto mode, or ISO and shutter when manual exposure is enabled. WB controls white balance presets and Kelvin."
+                        title: "PRO CONTROLS",
+                        body: "Use EXP, WB, and LENS for exposure, white balance, and rear-camera selection. Selected controls turn amber."
                     )
 
                     helpCard(
                         icon: "timer",
-                        title: "CAPTURE AIDS",
-                        body: "Tap the control icon next to the photo thumbnail to show or hide the full panel. You can also swipe up to reveal controls and swipe down to hide them. GRID and LEVEL help composition. TIMER gives you 3s or 10s delay. SHAKE waits briefly for steadier hands. BRKT saves three RAW frames at different EV values."
+                        title: "TOOLS GRID",
+                        body: "The 3x3 grid holds AF/AE, TIMER, GRID, LEVEL, TAP, and BRKT. Swipe up to open, down to hide."
                     )
 
                     helpCard(
                         icon: "speaker.wave.2",
                         title: "SHUTTER SHORTCUTS",
-                        body: "Tap the shutter or use the iPhone volume buttons. RawCam also exposes an Open Camera shortcut for Shortcuts, Siri, Spotlight, and Action Button workflows."
+                        body: "Tap the shutter, press either volume button, or open RawCam from Shortcuts, Siri, Spotlight, or Action Button."
                     )
 
                     helpCard(
                         icon: "exclamationmark.triangle",
                         title: "LIMITATIONS",
-                        body: "iOS caps third-party RAW capture at 12MP. Apple's own Camera app keeps exclusive access to the full 48MP RAW path. Lens correction can also happen at the hardware level."
+                        body: "iOS limits third-party RAW capture to 12MP. Apple keeps the full 48MP RAW path for its Camera app."
                     )
 
                     // Credit
