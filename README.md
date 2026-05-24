@@ -36,6 +36,7 @@ RawCam is a minimal iOS camera that saves only the sensor's raw DNG. Tap the shu
 - **Volume-button shutter.** Use the hardware volume buttons as a shutter release.
 - **RAW bracketing.** Captures three RAW frames at different EV values.
 - **Last-shot details.** Shows mode, lens, ISO, shutter, EV, white balance, clipping, and a preview when available.
+- **RawCam roll.** Opens recent RawCam captures in-app with preview thumbnails and capture details, without browsing your full Photos library.
 - **App Shortcut.** Launch RawCam from Shortcuts, Siri, Spotlight, or the Action Button on supported iPhones.
 - **Flash toggle.** Off / on / auto.
 - **Front / back camera** switch.

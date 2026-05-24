@@ -44,7 +44,7 @@ enum WhiteBalancePreset: String, CaseIterable {
     }
 }
 
-struct CaptureDetails {
+struct CaptureDetails: Codable, Equatable {
     let mode: String
     let lens: String
     let iso: Int
@@ -52,6 +52,13 @@ struct CaptureDetails {
     let ev: String
     let whiteBalance: String
     let clipping: String
+}
+
+struct RawCamMediaItem: Identifiable, Codable, Equatable {
+    let id: UUID
+    let capturedAt: Date
+    let details: CaptureDetails
+    let thumbnailFilename: String?
 }
 
 struct CameraLens: Identifiable, Hashable {
@@ -77,6 +84,7 @@ class CameraManager: NSObject, ObservableObject {
     @Published var isUsingFrontCamera = false
     @Published var rawSupported = false
     @Published var lastCaptureDetails: CaptureDetails?
+    @Published var mediaItems: [RawCamMediaItem] = []
     @Published var availableLenses: [CameraLens] = []
     @Published var selectedLensID: String?
 
@@ -131,6 +139,11 @@ class CameraManager: NSObject, ObservableObject {
     private var bracketIndex = 0
     private var bracketOriginalBias: Float = 0
     private var bracketSavedCount = 0
+
+    override init() {
+        super.init()
+        loadMediaRoll()
+    }
 
     func configure() {
         guard !isConfigured else { return }
@@ -601,8 +614,10 @@ class CameraManager: NSObject, ObservableObject {
         guard bracketIndex < bracketOffsets.count else {
             finishBracket(restoreBias: true)
             showSaved(label: "BRACKET")
-            lastCaptureDetails = captureDetails(label: "BRACKET x3")
+            let details = captureDetails(label: "BRACKET x3")
+            lastCaptureDetails = details
             lastThumbnail = latestPreviewImage
+            addMediaRollItem(details: details, thumbnail: latestPreviewImage)
             return
         }
 
@@ -675,9 +690,14 @@ class CameraManager: NSObject, ObservableObject {
                         }
 
                         self?.isTakingPhoto = false
-                        self?.lastCaptureDetails = self?.captureDetails(label: self?.captureMode.rawValue ?? "")
-                        self?.showSaved(label: self?.captureMode.rawValue ?? "")
+                        let label = self?.captureMode.rawValue ?? ""
+                        let details = self?.captureDetails(label: label)
+                        self?.lastCaptureDetails = details
+                        self?.showSaved(label: label)
                         self?.lastThumbnail = self?.latestPreviewImage
+                        if let details {
+                            self?.addMediaRollItem(details: details, thumbnail: self?.latestPreviewImage)
+                        }
                     } else {
                         self?.finishBracket(restoreBias: true)
                         self?.errorMessage = "Failed to save: \(error?.localizedDescription ?? "Unknown error")"
@@ -708,10 +728,13 @@ class CameraManager: NSObject, ObservableObject {
                 DispatchQueue.main.async {
                     self?.isTakingPhoto = false
                     if success {
-                        self?.lastCaptureDetails = self?.captureDetails(label: "RAW+JPG")
+                        let details = self?.captureDetails(label: "RAW+JPG")
+                        self?.lastCaptureDetails = details
                         self?.showSaved(label: "RAW+JPG")
-                        if let image = UIImage(data: processedData) {
-                            self?.lastThumbnail = image
+                        let thumbnail = UIImage(data: processedData)
+                        self?.lastThumbnail = thumbnail
+                        if let details {
+                            self?.addMediaRollItem(details: details, thumbnail: thumbnail)
                         }
                     } else {
                         self?.errorMessage = "Failed to save: \(error?.localizedDescription ?? "Unknown error")"
@@ -768,6 +791,67 @@ class CameraManager: NSObject, ObservableObject {
             setExposureBias(bracketOriginalBias)
         }
         isTakingPhoto = false
+    }
+
+    func thumbnail(for item: RawCamMediaItem) -> UIImage? {
+        guard let thumbnailFilename = item.thumbnailFilename else { return nil }
+        return UIImage(contentsOfFile: mediaRollDirectory.appendingPathComponent(thumbnailFilename).path)
+    }
+
+    private func addMediaRollItem(details: CaptureDetails, thumbnail: UIImage?) {
+        let id = UUID()
+        let thumbnailFilename = saveMediaRollThumbnail(thumbnail, id: id)
+        let item = RawCamMediaItem(
+            id: id,
+            capturedAt: Date(),
+            details: details,
+            thumbnailFilename: thumbnailFilename
+        )
+        mediaItems.insert(item, at: 0)
+        saveMediaRoll()
+    }
+
+    private var mediaRollDirectory: URL {
+        let baseURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        return baseURL.appendingPathComponent("RawCamRoll", isDirectory: true)
+    }
+
+    private var mediaRollIndexURL: URL {
+        mediaRollDirectory.appendingPathComponent("index.json")
+    }
+
+    private func loadMediaRoll() {
+        do {
+            try FileManager.default.createDirectory(at: mediaRollDirectory, withIntermediateDirectories: true)
+            guard FileManager.default.fileExists(atPath: mediaRollIndexURL.path) else { return }
+            let data = try Data(contentsOf: mediaRollIndexURL)
+            mediaItems = try JSONDecoder().decode([RawCamMediaItem].self, from: data)
+        } catch {
+            mediaItems = []
+        }
+    }
+
+    private func saveMediaRoll() {
+        do {
+            try FileManager.default.createDirectory(at: mediaRollDirectory, withIntermediateDirectories: true)
+            let data = try JSONEncoder().encode(mediaItems)
+            try data.write(to: mediaRollIndexURL, options: .atomic)
+        } catch {
+            errorMessage = "Saved to Photos, but RawCam roll could not update."
+        }
+    }
+
+    private func saveMediaRollThumbnail(_ image: UIImage?, id: UUID) -> String? {
+        guard let image, let data = image.jpegData(compressionQuality: 0.78) else { return nil }
+        let filename = "\(id.uuidString).jpg"
+
+        do {
+            try FileManager.default.createDirectory(at: mediaRollDirectory, withIntermediateDirectories: true)
+            try data.write(to: mediaRollDirectory.appendingPathComponent(filename), options: .atomic)
+            return filename
+        } catch {
+            return nil
+        }
     }
 
     private var activeLensLabel: String {

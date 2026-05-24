@@ -91,6 +91,7 @@ struct CameraView: View {
     @State private var controlsExpanded = false
     @State private var countdown: Int?
     @State private var showLastDetails = false
+    @State private var showMediaRoll = false
 
     // Shutter animation
     @State private var shutterPulse = 0
@@ -214,6 +215,11 @@ struct CameraView: View {
         }
         .sheet(isPresented: $showLastDetails) {
             LastCaptureSheet(details: camera.lastCaptureDetails, image: camera.lastThumbnail)
+        }
+        .sheet(isPresented: $showMediaRoll) {
+            RawCamRollSheet(items: camera.mediaItems) { item in
+                camera.thumbnail(for: item)
+            }
         }
     }
 
@@ -535,9 +541,8 @@ struct CameraView: View {
                 // Left — gallery + tools, fills equal half
                 HStack(spacing: 12) {
                     Button {
-                        if let url = URL(string: "photos-redirect://") {
-                            UIApplication.shared.open(url)
-                        }
+                        hapticMedium.impactOccurred()
+                        showMediaRoll = true
                     } label: {
                         GalleryThumb(image: camera.lastThumbnail)
                     }
@@ -1468,6 +1473,132 @@ struct LastCapturePreview: View {
                 .stroke(Color.white.opacity(0.09), lineWidth: 1)
         )
         .shadow(color: .black.opacity(0.35), radius: 18, x: 0, y: 12)
+    }
+}
+
+struct RawCamRollSheet: View {
+    @Environment(\.dismiss) var dismiss
+    let items: [RawCamMediaItem]
+    let thumbnailProvider: (RawCamMediaItem) -> UIImage?
+
+    var body: some View {
+        ZStack {
+            Color(red: 0.05, green: 0.05, blue: 0.05).ignoresSafeArea()
+
+            VStack(alignment: .leading, spacing: 18) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text("RAWCAM ROLL")
+                            .font(.system(size: 12, weight: .bold, design: .monospaced))
+                            .foregroundColor(.white)
+                            .tracking(1.8)
+
+                        Text("\(items.count) CAPTURE\(items.count == 1 ? "" : "S")")
+                            .font(.system(size: 11, weight: .bold, design: .monospaced))
+                            .foregroundColor(Color(white: 0.42))
+                            .tracking(1.2)
+                    }
+
+                    Spacer()
+
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(Color(white: 0.55))
+                            .frame(width: 32, height: 32)
+                            .background(Color(white: 0.15), in: Circle())
+                    }
+                }
+
+                if items.isEmpty {
+                    Spacer()
+                    VStack(spacing: 12) {
+                        Image(systemName: "photo.on.rectangle.angled")
+                            .font(.system(size: 34, weight: .semibold))
+                            .foregroundColor(Color(white: 0.55))
+                        Text("NO RAWCAM CAPTURES YET")
+                            .font(.system(size: 12, weight: .bold, design: .monospaced))
+                            .foregroundColor(.white)
+                            .tracking(1.3)
+                        Text("New captures appear here without letting RawCam browse your Photos library.")
+                            .font(.system(size: 14, weight: .medium, design: .rounded))
+                            .foregroundColor(Color(white: 0.58))
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 24)
+                    }
+                    .frame(maxWidth: .infinity)
+                    Spacer()
+                } else {
+                    ScrollView {
+                        LazyVStack(spacing: 14) {
+                            ForEach(items) { item in
+                                RawCamRollCard(item: item, image: thumbnailProvider(item))
+                            }
+                        }
+                        .padding(.bottom, 24)
+                    }
+                    .scrollIndicators(.hidden)
+                }
+            }
+            .padding(22)
+        }
+        .preferredColorScheme(.dark)
+    }
+}
+
+struct RawCamRollCard: View {
+    let item: RawCamMediaItem
+    let image: UIImage?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            LastCapturePreview(image: image)
+                .frame(height: 230)
+
+            HStack {
+                Text(item.details.mode)
+                    .font(.system(size: 12, weight: .bold, design: .monospaced))
+                    .foregroundColor(.white)
+                    .tracking(1.2)
+
+                Spacer()
+
+                Text(item.capturedAt.formatted(date: .abbreviated, time: .shortened).uppercased())
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .foregroundColor(Color(white: 0.42))
+                    .tracking(0.8)
+            }
+
+            VStack(spacing: 8) {
+                rollDetailRow("LENS", item.details.lens)
+                rollDetailRow("ISO", "\(item.details.iso)")
+                rollDetailRow("SHUTTER", item.details.shutter)
+                rollDetailRow("EV", item.details.ev)
+                rollDetailRow("WB", item.details.whiteBalance)
+                rollDetailRow("CLIP", item.details.clipping)
+            }
+        }
+        .padding(12)
+        .background(Color(white: 0.08), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
+        )
+    }
+
+    private func rollDetailRow(_ label: String, _ value: String) -> some View {
+        HStack {
+            Text(label)
+                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                .foregroundColor(Color(white: 0.40))
+                .tracking(1.1)
+            Spacer()
+            Text(value)
+                .font(.system(size: 12, weight: .bold, design: .monospaced))
+                .foregroundColor(Color(white: 0.80))
+        }
     }
 }
 

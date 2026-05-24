@@ -20,8 +20,9 @@ You can review and revoke these permissions any time in iOS Settings → Privacy
 
 - The photos you take (DNG and optional JPEG)
 - Your last-used capture mode (RAW or RAW+JPG), flash setting, and which camera was active
+- A local RawCam roll index for captures made in RawCam, including small preview thumbnails and capture details such as lens, ISO, shutter speed, exposure value, white balance, and clipping status
 
-That's it. Settings live in iOS's standard local storage. Photos live in your iPhone's photo library, alongside everything else.
+That's it. Settings and the RawCam roll index live in iOS's standard local app storage. Photos live in your iPhone's photo library, alongside everything else.
 
 ## Network requests RawCam makes
 

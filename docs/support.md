@@ -93,6 +93,10 @@ No. RawCam has no servers, no accounts, and makes no network requests. Photos sa
 
 You should — DNGs appear alongside JPEGs in the standard photo library. If a photo is missing, make sure you granted RawCam permission to save to your photo library when you first opened the app. You can check this in the iOS Settings app: Settings → Privacy & Security → Photos → RawCam.
 
+### What does the photo thumbnail button open?
+
+It opens the RawCam roll inside the app. The roll shows captures made in RawCam from this version forward, with a preview and capture details. RawCam still uses add-only Photos access, so it does not browse your full Photos library.
+
 ### Can I shoot video with RawCam?
 
 Not in v1. RawCam is photos only. Video may come later.
