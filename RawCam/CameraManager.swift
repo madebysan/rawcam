@@ -114,6 +114,8 @@ class CameraManager: NSObject, ObservableObject {
     private var audioInput: AVCaptureDeviceInput?
     private var videoRecordingURL: URL?
     private var videoTimer: Timer?
+    private var notificationTokens: [NSObjectProtocol] = []
+    private var pendingVideoStopReason: String?
 
     // State
     @Published var isTakingPhoto = false
@@ -188,6 +190,12 @@ class CameraManager: NSObject, ObservableObject {
     override init() {
         super.init()
         loadMediaRoll()
+        installReliabilityObservers()
+    }
+
+    deinit {
+        videoTimer?.invalidate()
+        notificationTokens.forEach(NotificationCenter.default.removeObserver)
     }
 
     func configure() {
@@ -228,6 +236,61 @@ class CameraManager: NSObject, ObservableObject {
         #if DEBUG
         VideoCapabilityReporter.saveDebugReport()
         #endif
+    }
+
+    private func installReliabilityObservers() {
+        let center = NotificationCenter.default
+        let mainQueue = OperationQueue.main
+
+        notificationTokens.append(center.addObserver(
+            forName: UIApplication.didEnterBackgroundNotification,
+            object: nil,
+            queue: mainQueue
+        ) { [weak self] _ in
+            self?.stopVideoRecording(reason: "Recording stopped because RawCam went to background")
+        })
+
+        notificationTokens.append(center.addObserver(
+            forName: UIApplication.willTerminateNotification,
+            object: nil,
+            queue: mainQueue
+        ) { [weak self] _ in
+            self?.stopVideoRecording(reason: "Recording stopped because RawCam was closing")
+        })
+
+        notificationTokens.append(center.addObserver(
+            forName: AVCaptureSession.runtimeErrorNotification,
+            object: session,
+            queue: mainQueue
+        ) { [weak self] notification in
+            let error = notification.userInfo?[AVCaptureSessionErrorKey] as? AVError
+            self?.errorMessage = "Camera error: \(error?.localizedDescription ?? "Unknown error")"
+            self?.stopVideoRecording(reason: "Recording stopped after a camera error")
+        })
+
+        notificationTokens.append(center.addObserver(
+            forName: AVCaptureSession.wasInterruptedNotification,
+            object: session,
+            queue: mainQueue
+        ) { [weak self] _ in
+            self?.stopVideoRecording(reason: "Recording stopped after camera interruption")
+        })
+
+        notificationTokens.append(center.addObserver(
+            forName: AVAudioSession.interruptionNotification,
+            object: AVAudioSession.sharedInstance(),
+            queue: mainQueue
+        ) { [weak self] _ in
+            self?.stopVideoRecording(reason: "Recording stopped after audio interruption")
+        })
+
+        notificationTokens.append(center.addObserver(
+            forName: ProcessInfo.thermalStateDidChangeNotification,
+            object: nil,
+            queue: mainQueue
+        ) { [weak self] _ in
+            self?.stopIfThermalStateIsUnsafe()
+        })
     }
 
     private func addCamera(position: AVCaptureDevice.Position) {
@@ -820,17 +883,27 @@ class CameraManager: NSObject, ObservableObject {
     }
 
     private func startVideoRecording() {
+        guard hasEnoughVideoStorage() else {
+            errorMessage = "Not enough free storage to start recording"
+            return
+        }
+
         ensureAudioInputIfAllowed()
 
         let fileURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("RawCam-\(UUID().uuidString).mov")
         videoRecordingURL = fileURL
 
-        if let connection = movieOutput.connection(with: .video) {
-            connection.videoRotationAngle = isUsingFrontCamera ? 270 : 90
-            applySelectedVideoFormat(to: connection)
+        guard let connection = movieOutput.connection(with: .video) else {
+            errorMessage = "Video output unavailable"
+            cleanupVideoFile(fileURL)
+            return
         }
 
+        connection.videoRotationAngle = isUsingFrontCamera ? 270 : 90
+        applySelectedVideoFormat(to: connection)
+
+        pendingVideoStopReason = nil
         videoElapsedSeconds = 0
         isRecordingVideo = true
         startVideoTimer()
@@ -881,11 +954,12 @@ class CameraManager: NSObject, ObservableObject {
         device.activeColorSpace = colorSpace
     }
 
-    private func stopVideoRecording() {
+    private func stopVideoRecording(reason: String? = nil) {
         guard movieOutput.isRecording else {
             finishVideoRecordingState()
             return
         }
+        pendingVideoStopReason = reason
         movieOutput.stopRecording()
     }
 
@@ -893,6 +967,7 @@ class CameraManager: NSObject, ObservableObject {
         videoTimer?.invalidate()
         videoTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
             self?.videoElapsedSeconds += 1
+            self?.monitorRecordingHealth()
         }
     }
 
@@ -900,6 +975,47 @@ class CameraManager: NSObject, ObservableObject {
         videoTimer?.invalidate()
         videoTimer = nil
         isRecordingVideo = false
+    }
+
+    private func monitorRecordingHealth() {
+        guard isRecordingVideo else { return }
+
+        if !hasEnoughVideoStorage() {
+            stopVideoRecording(reason: "Recording stopped because storage is low")
+            return
+        }
+
+        if isThermalStateUnsafe {
+            stopVideoRecording(reason: "Recording stopped because iPhone is too hot")
+            return
+        }
+
+        if let pressureLevel = currentDevice?.systemPressureState.level,
+           pressureLevel == .serious || pressureLevel == .critical || pressureLevel == .shutdown {
+            stopVideoRecording(reason: "Recording stopped because camera pressure is high")
+        }
+    }
+
+    private func stopIfThermalStateIsUnsafe() {
+        guard isThermalStateUnsafe else { return }
+        stopVideoRecording(reason: "Recording stopped because iPhone is too hot")
+    }
+
+    private var isThermalStateUnsafe: Bool {
+        let state = ProcessInfo.processInfo.thermalState
+        return state == .serious || state == .critical
+    }
+
+    private func hasEnoughVideoStorage(minimumBytes: Int64 = 250 * 1024 * 1024) -> Bool {
+        do {
+            let values = try FileManager.default.temporaryDirectory.resourceValues(
+                forKeys: [.volumeAvailableCapacityForImportantUsageKey]
+            )
+            guard let available = values.volumeAvailableCapacityForImportantUsage else { return true }
+            return available > minimumBytes
+        } catch {
+            return true
+        }
     }
 
     // MARK: - Save
@@ -1019,6 +1135,14 @@ class CameraManager: NSObject, ObservableObject {
         if videoRecordingURL == fileURL {
             videoRecordingURL = nil
         }
+    }
+
+    private func videoFileLooksValid(_ fileURL: URL) -> Bool {
+        guard let attributes = try? FileManager.default.attributesOfItem(atPath: fileURL.path),
+              let size = attributes[.size] as? NSNumber else {
+            return false
+        }
+        return size.int64Value > 0
     }
 
     private func showSaved(label: String) {
@@ -1188,6 +1312,8 @@ extension CameraManager: AVCaptureFileOutputRecordingDelegate {
     ) {
         DispatchQueue.main.async {
             self.finishVideoRecordingState()
+            let stopReason = self.pendingVideoStopReason
+            self.pendingVideoStopReason = nil
 
             if let error {
                 self.errorMessage = "Recording failed: \(error.localizedDescription)"
@@ -1195,6 +1321,15 @@ extension CameraManager: AVCaptureFileOutputRecordingDelegate {
                 return
             }
 
+            guard self.videoFileLooksValid(outputFileURL) else {
+                self.errorMessage = stopReason ?? "Recording failed: empty video file"
+                self.cleanupVideoFile(outputFileURL)
+                return
+            }
+
+            if let stopReason {
+                self.errorMessage = stopReason
+            }
             self.saveVideoToPhotos(outputFileURL)
         }
     }
