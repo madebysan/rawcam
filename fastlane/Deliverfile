@@ -13,7 +13,7 @@ app_review_information(
   email_address: "snt.aln@gmail.com",
   demo_user: nil,
   demo_password: nil,
-  notes: "RawCam is a minimal camera that saves only the sensor's raw DNG file to the device's photo library. No account, no network requests, no servers. To test: launch the app, grant camera and photo library permissions, tap the shutter button. The captured DNG will appear in the Photos app. Tap to focus, long-press to lock AF/AE. Toggle between RAW and RAW+JPG modes via the on-screen control. Front and back cameras both supported."
+  notes: "RawCam is a minimal camera that saves the sensor's raw DNG file to the device photo library. No account, no network requests, no servers. To test: launch the app, grant camera and photo library permissions, then tap the shutter. The captured DNG appears in Photos. Tap to focus, use LOCK to hold current AF/AE, and use TAP to switch between focus and exposure metering. RAW and RAW+JPG are available from the top mode control. Front and back cameras are both supported."
 )
 
 submission_information({
