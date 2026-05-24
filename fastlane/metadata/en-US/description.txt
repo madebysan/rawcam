@@ -17,7 +17,7 @@ WHAT YOU GET
 • Separate focus and exposure targeting
 • White balance controls with presets and Kelvin adjustment
 • Lens selector with RAW availability
-• Focus loupe and focus peaking
+• Focus loupe for tap-to-focus checks
 • Optional grid, horizon level, and self-timer
 • Volume-button shutter
 • Anti-shake shutter that waits for steadier hands

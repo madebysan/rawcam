@@ -79,7 +79,6 @@ class CameraManager: NSObject, ObservableObject {
     @Published var lastCaptureDetails: CaptureDetails?
     @Published var availableLenses: [CameraLens] = []
     @Published var selectedLensID: String?
-    @Published var focusPeakingImage: UIImage?
 
     // Capture mode
     @Published var captureMode: CaptureMode = .raw
@@ -117,7 +116,6 @@ class CameraManager: NSObject, ObservableObject {
     private var isConfigured = false
     private let histogramQueue = DispatchQueue(label: "com.rawcam.histogram", qos: .utility)
     private var frameCounter = 0
-    private var focusPeakingEnabled = false
 
     // Coverage mode storage
     private var coverageRAWData: Data?
@@ -537,13 +535,6 @@ class CameraManager: NSObject, ObservableObject {
         }
     }
 
-    func setFocusPeakingEnabled(_ enabled: Bool) {
-        focusPeakingEnabled = enabled
-        if !enabled {
-            focusPeakingImage = nil
-        }
-    }
-
     // MARK: - Capture
 
     func capturePhoto(bracketed: Bool = false) {
@@ -843,21 +834,9 @@ extension CameraManager: AVCaptureVideoDataOutputSampleBufferDelegate {
             }
         }
 
-        let peakingImage = focusPeakingEnabled
-            ? makeFocusPeakingImage(
-                from: buffer,
-                width: width,
-                height: height,
-                bytesPerRow: bytesPerRow
-            )
-            : nil
-
         DispatchQueue.main.async {
             self.histogramData = histogram
             self.updateClippingFlags(from: histogram)
-            if self.focusPeakingEnabled {
-                self.focusPeakingImage = peakingImage
-            }
         }
     }
 
@@ -878,66 +857,6 @@ extension CameraManager: AVCaptureVideoDataOutputSampleBufferDelegate {
         isHighlightClipping = Double(highlightCount) > threshold
     }
 
-    private func makeFocusPeakingImage(
-        from buffer: UnsafePointer<UInt8>,
-        width: Int,
-        height: Int,
-        bytesPerRow: Int
-    ) -> UIImage? {
-        let outputWidth = 180
-        let outputHeight = max(1, Int(Double(height) / Double(width) * Double(outputWidth)))
-        let stepX = max(width / outputWidth, 1)
-        let stepY = max(height / outputHeight, 1)
-        var pixels = [UInt8](repeating: 0, count: outputWidth * outputHeight * 4)
-
-        func luma(_ sourceX: Int, _ sourceY: Int) -> Int {
-            let x = min(max(sourceX, 0), width - 1)
-            let y = min(max(sourceY, 0), height - 1)
-            let offset = y * bytesPerRow + x * 4
-            let b = Int(buffer[offset])
-            let g = Int(buffer[offset + 1])
-            let r = Int(buffer[offset + 2])
-            return (r * 77 + g * 150 + b * 29) >> 8
-        }
-
-        for y in 1..<(outputHeight - 1) {
-            for x in 1..<(outputWidth - 1) {
-                let sourceX = x * stepX
-                let sourceY = y * stepY
-                let horizontal = abs(luma(sourceX + stepX, sourceY) - luma(sourceX - stepX, sourceY))
-                let vertical = abs(luma(sourceX, sourceY + stepY) - luma(sourceX, sourceY - stepY))
-                let edge = horizontal + vertical
-
-                guard edge > 58 else { continue }
-
-                let offset = (y * outputWidth + x) * 4
-                pixels[offset] = 255
-                pixels[offset + 1] = 56
-                pixels[offset + 2] = 28
-                pixels[offset + 3] = UInt8(min(edge * 3, 210))
-            }
-        }
-
-        guard let provider = CGDataProvider(data: Data(pixels) as CFData),
-              let image = CGImage(
-                width: outputWidth,
-                height: outputHeight,
-                bitsPerComponent: 8,
-                bitsPerPixel: 32,
-                bytesPerRow: outputWidth * 4,
-                space: CGColorSpaceCreateDeviceRGB(),
-                bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedLast.rawValue),
-                provider: provider,
-                decode: nil,
-                shouldInterpolate: false,
-                intent: .defaultIntent
-              )
-        else {
-            return nil
-        }
-
-        return UIImage(cgImage: image)
-    }
 }
 
 // MARK: - Helpers

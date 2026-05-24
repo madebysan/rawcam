@@ -45,9 +45,9 @@ Tap `LENS` to switch between supported rear cameras. RawCam shows RAW availabili
 
 The `TAP` control switches what a preview tap does. `FOCUS` sets focus. `METER` sets the exposure point without moving focus. The exposure point shows as a yellow `AE` target.
 
-### What are the focus loupe and PEAK controls?
+### What is the focus loupe?
 
-When you tap to focus, RawCam briefly shows a magnified loupe around the focus point. `PEAK` adds a red edge overlay on high-contrast detail so it is easier to judge sharpness.
+When you tap to focus, RawCam briefly shows a magnified loupe around the focus point.
 
 ### What are GRID, LEVEL, and TIMER?
 

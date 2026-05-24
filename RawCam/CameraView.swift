@@ -45,7 +45,6 @@ struct CameraView: View {
     @AppStorage("tapTarget") private var tapTargetRaw = "focus"
     @AppStorage("showGrid") private var showGrid = false
     @AppStorage("showLevel") private var showLevel = false
-    @AppStorage("focusPeakingEnabled") private var focusPeakingEnabled = false
     @AppStorage("selfTimerSeconds") private var selfTimerSeconds = 0
     @AppStorage("antiShakeEnabled") private var antiShakeEnabled = false
     @AppStorage("bracketEnabled") private var bracketEnabled = false
@@ -90,17 +89,6 @@ struct CameraView: View {
             if showLevel {
                 HorizonLevel(roll: level.roll)
                     .padding(.bottom, 220)
-                    .allowsHitTesting(false)
-            }
-
-            if focusPeakingEnabled, let image = camera.focusPeakingImage {
-                Image(uiImage: image)
-                    .resizable()
-                    .interpolation(.none)
-                    .aspectRatio(contentMode: .fill)
-                    .ignoresSafeArea()
-                    .opacity(0.72)
-                    .blendMode(.screen)
                     .allowsHitTesting(false)
             }
 
@@ -165,20 +153,15 @@ struct CameraView: View {
             hapticHeavy.prepare()
             level.start()
             camera.captureMode = CaptureMode(rawValue: persistedCaptureMode) ?? .raw
-            camera.setFocusPeakingEnabled(focusPeakingEnabled)
             volumeButtons.start()
             checkPermissionAndStart()
         }
         .onDisappear {
             level.stop()
             volumeButtons.stop()
-            camera.setFocusPeakingEnabled(false)
         }
         .onChange(of: camera.captureMode) { _, mode in
             persistedCaptureMode = mode.rawValue
-        }
-        .onChange(of: focusPeakingEnabled) { _, enabled in
-            camera.setFocusPeakingEnabled(enabled)
         }
         .onReceive(volumeButtons.$pressCount.dropFirst()) { _ in
             guard volumeButtons.isListening else { return }
@@ -668,13 +651,6 @@ struct CameraView: View {
 
             HStack(spacing: 8) {
                 controlChip(
-                    title: "PEAK",
-                    value: focusPeakingEnabled ? "ON" : "OFF",
-                    isActive: focusPeakingEnabled,
-                    action: { focusPeakingEnabled.toggle() }
-                )
-
-                controlChip(
                     title: "SHAKE",
                     value: antiShakeEnabled ? "ON" : "OFF",
                     isActive: antiShakeEnabled,
@@ -699,6 +675,13 @@ struct CameraView: View {
                             showLastDetails = true
                         }
                     }
+                )
+
+                controlChip(
+                    title: "VOL",
+                    value: "SHUT",
+                    isActive: false,
+                    action: { camera.errorMessage = "Volume buttons trigger shutter" }
                 )
             }
         }

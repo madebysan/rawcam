@@ -25,7 +25,7 @@ RawCam is a minimal iOS camera that saves only the sensor's raw DNG. Tap the shu
 - **White balance controls.** Use auto, daylight, cloudy, tungsten, fluorescent, or Kelvin.
 - **Lens selector.** Switch supported rear lenses and see RAW availability honestly.
 - **Grid + level.** Optional composition grid and horizon level.
-- **Focus aids.** Focus loupe and optional focus peaking for sharper manual checks.
+- **Focus loupe.** Brief magnified preview when you tap to focus.
 - **Self-timer.** Off / 3s / 10s.
 - **Volume-button shutter.** Use the hardware volume buttons as a shutter release.
 - **Anti-shake shutter.** Waits for the phone to steady before firing.
