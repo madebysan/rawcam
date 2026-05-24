@@ -50,6 +50,7 @@ struct CameraView: View {
     @AppStorage("antiShakeEnabled") private var antiShakeEnabled = false
     @AppStorage("bracketEnabled") private var bracketEnabled = false
     @AppStorage("captureMode") private var persistedCaptureMode = CaptureMode.raw.rawValue
+    @AppStorage("controlsExpanded") private var controlsExpanded = false
     @State private var countdown: Int?
     @State private var waitingForSteadyShot = false
     @State private var showLastDetails = false
@@ -81,19 +82,19 @@ struct CameraView: View {
             .ignoresSafeArea()
 
             if showGrid {
-                GridOverlay(bottomInset: 360)
+                GridOverlay(bottomInset: controlsExpanded ? 360 : 220)
                     .ignoresSafeArea()
                     .allowsHitTesting(false)
             }
 
             if showLevel {
                 HorizonLevel(roll: level.roll)
-                    .padding(.bottom, 220)
+                    .padding(.bottom, controlsExpanded ? 220 : 150)
                     .allowsHitTesting(false)
             }
 
             if camera.isHighlightClipping {
-                ZebraOverlay(bottomInset: 360)
+                ZebraOverlay(bottomInset: controlsExpanded ? 360 : 220)
                     .ignoresSafeArea()
                     .allowsHitTesting(false)
             }
@@ -475,7 +476,17 @@ struct CameraView: View {
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
 
-            controlsDrawer
+            Group {
+                if controlsExpanded {
+                    controlsDrawer
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                } else {
+                    controlsHandle
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+            }
+            .gesture(controlsRevealGesture)
+            .animation(Theme.tapSpring, value: controlsExpanded)
 
             // Saved / error feedback
             ZStack {
@@ -561,6 +572,63 @@ struct CameraView: View {
         }
     }
 
+    private var controlsHandle: some View {
+        Button {
+            hapticMedium.impactOccurred()
+            hapticMedium.prepare()
+            withAnimation(Theme.tapSpring) {
+                controlsExpanded.toggle()
+            }
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: "chevron.up")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(Theme.accent)
+                    .frame(width: 26, height: 26)
+                    .background(Theme.accent.opacity(0.14), in: Circle())
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("TOOLS")
+                        .font(.system(size: 10, weight: .bold, design: .monospaced))
+                        .tracking(1.8)
+                        .foregroundColor(Theme.textPrimary)
+                    Text(activeToolsSummary)
+                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                        .foregroundColor(Theme.textSecondary)
+                }
+
+                Spacer(minLength: 0)
+
+                HStack(spacing: 5) {
+                    ForEach(Array(activeToolDots.enumerated()), id: \.offset) { _, isActive in
+                        Circle()
+                            .fill(isActive ? Theme.accent : Color.white.opacity(0.18))
+                            .frame(width: 6, height: 6)
+                    }
+                }
+            }
+            .padding(.horizontal, 14)
+            .frame(height: 50)
+            .background(
+                LinearGradient(
+                    colors: [
+                        Color.black.opacity(0.72),
+                        Theme.panel.opacity(0.88)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ),
+                in: Capsule()
+            )
+            .overlay(Capsule().strokeBorder(Color.white.opacity(0.10), lineWidth: 1))
+            .shadow(color: .black.opacity(0.36), radius: 16, y: 8)
+            .shadow(color: Theme.accent.opacity(0.10), radius: 16)
+        }
+        .buttonStyle(DimPressStyle())
+    }
+
     private var controlsDrawer: some View {
         VStack(spacing: 0) {
             controlStrip
@@ -599,6 +667,7 @@ struct CameraView: View {
         )
         .shadow(color: .black.opacity(0.45), radius: 22, y: 12)
         .shadow(color: Theme.accent.opacity(0.10), radius: 22)
+        .gesture(controlsRevealGesture)
         .animation(Theme.tapSpring, value: activePanel)
     }
 
@@ -836,8 +905,50 @@ struct CameraView: View {
 
     private func togglePanel(_ panel: ControlPanel) {
         withAnimation(Theme.tapSpring) {
+            controlsExpanded = true
             activePanel = activePanel == panel ? nil : panel
         }
+    }
+
+    private var controlsRevealGesture: some Gesture {
+        DragGesture(minimumDistance: 18)
+            .onEnded { value in
+                if value.translation.height < -24 {
+                    hapticMedium.impactOccurred()
+                    hapticMedium.prepare()
+                    withAnimation(Theme.tapSpring) {
+                        controlsExpanded = true
+                    }
+                } else if value.translation.height > 24 {
+                    hapticMedium.impactOccurred()
+                    hapticMedium.prepare()
+                    withAnimation(Theme.tapSpring) {
+                        controlsExpanded = false
+                        activePanel = nil
+                    }
+                }
+            }
+    }
+
+    private var activeToolsSummary: String {
+        var labels: [String] = []
+        if selfTimerSeconds > 0 { labels.append("\(selfTimerSeconds)S") }
+        if showGrid { labels.append("GRID") }
+        if showLevel { labels.append("LEVEL") }
+        if tapTarget == .meter { labels.append("METER") }
+        if antiShakeEnabled { labels.append("SHAKE") }
+        if bracketEnabled { labels.append("BRKT") }
+        if camera.isFocusLocked || camera.isExposureLocked { labels.append("LOCK") }
+        return labels.isEmpty ? "Swipe up for controls" : labels.prefix(3).joined(separator: " + ")
+    }
+
+    private var activeToolDots: [Bool] {
+        [
+            selfTimerSeconds > 0,
+            showGrid || showLevel,
+            tapTarget == .meter,
+            antiShakeEnabled || bracketEnabled
+        ]
     }
 
     private var timerSummary: String {
@@ -1630,7 +1741,7 @@ struct HelpSheet: View {
                     helpCard(
                         icon: "timer",
                         title: "CAPTURE AIDS",
-                        body: "GRID and LEVEL help composition. TIMER gives you 3s or 10s delay. SHAKE waits briefly for steadier hands. BRKT saves three RAW frames at different EV values."
+                        body: "Swipe up on TOOLS to reveal the full control panel, or swipe down to hide it. GRID and LEVEL help composition. TIMER gives you 3s or 10s delay. SHAKE waits briefly for steadier hands. BRKT saves three RAW frames at different EV values."
                     )
 
                     helpCard(
