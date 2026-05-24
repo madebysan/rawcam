@@ -1630,54 +1630,56 @@ struct HelpSheet: View {
                     }
                     .padding(.top, 32)
 
-                    // What it does
-                    helpCard(
-                        icon: "camera.aperture",
-                        title: "WHY RAWCAM",
-                        body: "RawCam saves RAW DNG files before iPhone processing bakes in sharpening, tone mapping, Smart HDR, or Deep Fusion."
-                    )
+                    VStack(spacing: 12) {
+                        helpCard(
+                            icon: "camera.aperture",
+                            title: "WHY RAWCAM",
+                            body: "RawCam saves RAW DNG files before iPhone processing bakes in sharpening, tone mapping, Smart HDR, or Deep Fusion."
+                        )
 
-                    helpCard(
-                        icon: "arrow.triangle.branch",
-                        title: "RAW vs RAW+JPG",
-                        body: "RAW saves one DNG. RAW+JPG saves the DNG plus an Apple JPEG, so you can compare both versions."
-                    )
+                        helpCard(
+                            icon: "arrow.triangle.branch",
+                            title: "RAW vs RAW+JPG",
+                            body: "RAW saves one DNG. RAW+JPG saves the DNG plus an Apple JPEG, so you can compare both versions."
+                        )
 
-                    helpCard(
-                        icon: "hand.tap",
-                        title: "FOCUS & METER",
-                        body: "Tap to focus. Use LOCK to hold current AF/AE. Switch TAP to METER when taps should set exposure."
-                    )
+                        helpCard(
+                            icon: "hand.tap",
+                            title: "FOCUS & METER",
+                            body: "Tap to focus. Use LOCK to hold current AF/AE. Switch TAP to METER when taps should set exposure."
+                        )
 
-                    helpCard(
-                        icon: "line.3.horizontal.decrease",
-                        title: "HISTOGRAM & ZEBRA",
-                        body: "The histogram shows shadows left and highlights right. CLIP and zebra stripes warn when highlights blow out."
-                    )
+                        helpCard(
+                            icon: "line.3.horizontal.decrease",
+                            title: "HISTOGRAM & ZEBRA",
+                            body: "The histogram shows shadows left and highlights right. CLIP and zebra stripes warn when highlights blow out."
+                        )
 
-                    helpCard(
-                        icon: "camera.filters",
-                        title: "PRO CONTROLS",
-                        body: "Use EXP, WB, and LENS for exposure, white balance, and rear-camera selection. Selected controls turn amber."
-                    )
+                        helpCard(
+                            icon: "camera.filters",
+                            title: "PRO CONTROLS",
+                            body: "Use EXP, WB, and LENS for exposure, white balance, and rear-camera selection. Selected controls turn amber."
+                        )
 
-                    helpCard(
-                        icon: "timer",
-                        title: "TOOLS GRID",
-                        body: "The 3x3 grid holds AF/AE, TIMER, GRID, LEVEL, TAP, and BRKT. Swipe up to open, down to hide."
-                    )
+                        helpCard(
+                            icon: "timer",
+                            title: "TOOLS GRID",
+                            body: "The 3x3 grid holds AF/AE, TIMER, GRID, LEVEL, TAP, and BRKT. Swipe up to open, down to hide."
+                        )
 
-                    helpCard(
-                        icon: "speaker.wave.2",
-                        title: "SHUTTER SHORTCUTS",
-                        body: "Tap the shutter, press either volume button, or open RawCam from Shortcuts, Siri, Spotlight, or Action Button."
-                    )
+                        helpCard(
+                            icon: "speaker.wave.2",
+                            title: "SHUTTER SHORTCUTS",
+                            body: "Tap the shutter, press either volume button, or open RawCam from Shortcuts, Siri, Spotlight, or Action Button."
+                        )
 
-                    helpCard(
-                        icon: "exclamationmark.triangle",
-                        title: "LIMITATIONS",
-                        body: "iOS limits third-party RAW capture to 12MP. Apple keeps the full 48MP RAW path for its Camera app."
-                    )
+                        helpCard(
+                            icon: "exclamationmark.triangle",
+                            title: "LIMITATIONS",
+                            body: "iOS limits third-party RAW capture to 12MP. Apple keeps the full 48MP RAW path for its Camera app."
+                        )
+                    }
+                    .frame(maxWidth: .infinity)
 
                     // Credit
                     HStack {
@@ -1733,7 +1735,9 @@ struct HelpSheet: View {
                     .foregroundColor(Color(white: 0.6))
                     .lineSpacing(3)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
         .background(Color(red: 0.10, green: 0.10, blue: 0.10))
         .clipShape(RoundedRectangle(cornerRadius: 14))
