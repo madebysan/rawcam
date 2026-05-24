@@ -32,7 +32,20 @@ Thumbs.db
 plan.md
 backlog.md
 research.md
+recent.md
+CLAUDE.md
+Claude.md
+claude.md
+AGENTS.md
+GEMINI.md
+docs/research-audit.md
+.codex/
+.claude/
 
 # Environment
 .env
 .env.*
+fastlane/.env
+fastlane/.env.*
+!.env.example
+!fastlane/.env.example

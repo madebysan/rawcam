@@ -1,8 +1,17 @@
 default_platform(:ios)
 
-API_KEY_PATH = "/Users/san/private_keys/api_key.json"
 SCHEME = "RawCam"
 PROJECT = "RawCam.xcodeproj"
+
+def app_store_api_key
+  app_store_connect_api_key(
+    key_id: ENV.fetch("APP_STORE_CONNECT_KEY_ID"),
+    issuer_id: ENV.fetch("APP_STORE_CONNECT_ISSUER_ID"),
+    key_filepath: ENV.fetch("APP_STORE_CONNECT_KEY_FILEPATH"),
+    duration: 1200,
+    in_house: false
+  )
+end
 
 platform :ios do
   before_all do
@@ -51,13 +60,7 @@ platform :ios do
 
   desc "Build and export signed IPA"
   lane :build do
-    app_store_connect_api_key(
-      key_id: "DTWJG858MG",
-      issuer_id: "7efbe64f-d059-4e70-9c0b-02e8bf987fae",
-      key_filepath: "/Users/san/private_keys/AuthKey_DTWJG858MG.p8",
-      duration: 1200,
-      in_house: false
-    )
+    app_store_api_key
 
     build_app(
       project: PROJECT,
@@ -76,13 +79,7 @@ platform :ios do
 
   desc "Upload IPA to App Store Connect (TestFlight + processing)"
   lane :upload do
-    api_key = app_store_connect_api_key(
-      key_id: "DTWJG858MG",
-      issuer_id: "7efbe64f-d059-4e70-9c0b-02e8bf987fae",
-      key_filepath: "/Users/san/private_keys/AuthKey_DTWJG858MG.p8",
-      duration: 1200,
-      in_house: false
-    )
+    api_key = app_store_api_key
 
     upload_to_app_store(
       api_key: api_key,
@@ -96,13 +93,7 @@ platform :ios do
 
   desc "Push metadata + screenshots (no binary upload)"
   lane :metadata do
-    api_key = app_store_connect_api_key(
-      key_id: "DTWJG858MG",
-      issuer_id: "7efbe64f-d059-4e70-9c0b-02e8bf987fae",
-      key_filepath: "/Users/san/private_keys/AuthKey_DTWJG858MG.p8",
-      duration: 1200,
-      in_house: false
-    )
+    api_key = app_store_api_key
 
     upload_to_app_store(
       api_key: api_key,
@@ -117,13 +108,7 @@ platform :ios do
   lane :release do
     preflight
 
-    api_key = app_store_connect_api_key(
-      key_id: "DTWJG858MG",
-      issuer_id: "7efbe64f-d059-4e70-9c0b-02e8bf987fae",
-      key_filepath: "/Users/san/private_keys/AuthKey_DTWJG858MG.p8",
-      duration: 1200,
-      in_house: false
-    )
+    api_key = app_store_api_key
 
     upload_to_app_store(
       api_key: api_key,
@@ -150,13 +135,7 @@ platform :ios do
     upload
     metadata
 
-    api_key = app_store_connect_api_key(
-      key_id: "DTWJG858MG",
-      issuer_id: "7efbe64f-d059-4e70-9c0b-02e8bf987fae",
-      key_filepath: "/Users/san/private_keys/AuthKey_DTWJG858MG.p8",
-      duration: 1200,
-      in_house: false
-    )
+    api_key = app_store_api_key
 
     upload_to_app_store(
       api_key: api_key,
