@@ -50,7 +50,7 @@ struct CameraView: View {
     @AppStorage("antiShakeEnabled") private var antiShakeEnabled = false
     @AppStorage("bracketEnabled") private var bracketEnabled = false
     @AppStorage("captureMode") private var persistedCaptureMode = CaptureMode.raw.rawValue
-    @AppStorage("controlsExpanded") private var controlsExpanded = false
+    @State private var controlsExpanded = false
     @State private var countdown: Int?
     @State private var waitingForSteadyShot = false
     @State private var showLastDetails = false
@@ -476,17 +476,12 @@ struct CameraView: View {
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
 
-            Group {
-                if controlsExpanded {
-                    controlsDrawer
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                } else {
-                    controlsHandle
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                }
+            if controlsExpanded {
+                controlsDrawer
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .simultaneousGesture(controlsRevealGesture)
+                    .animation(Theme.tapSpring, value: controlsExpanded)
             }
-            .gesture(controlsRevealGesture)
-            .animation(Theme.tapSpring, value: controlsExpanded)
 
             // Saved / error feedback
             ZStack {
@@ -516,16 +511,19 @@ struct CameraView: View {
 
             // Shutter row: [gallery] | [shutter fixed center] | [info · flip]
             HStack(alignment: .center, spacing: 0) {
-                // Left — gallery, fills equal half
-                Button {
-                    if let url = URL(string: "photos-redirect://") {
-                        UIApplication.shared.open(url)
+                // Left — gallery + tools, fills equal half
+                HStack(spacing: 12) {
+                    Button {
+                        if let url = URL(string: "photos-redirect://") {
+                            UIApplication.shared.open(url)
+                        }
+                    } label: {
+                        GalleryThumb(image: camera.lastThumbnail)
                     }
-                } label: {
-                    GalleryThumb(image: camera.lastThumbnail)
+                    .buttonStyle(DimPressStyle())
+
+                    controlsToggleButton
                 }
-                .buttonStyle(DimPressStyle())
-                .contentShape(Rectangle())
                 .frame(maxWidth: .infinity, alignment: .leading)
 
                 // Center — shutter, fixed width keeps it screen-centered
@@ -569,64 +567,42 @@ struct CameraView: View {
                 }
                 .frame(maxWidth: .infinity)
             }
+            .simultaneousGesture(controlsRevealGesture)
         }
     }
 
-    private var controlsHandle: some View {
+    private var controlsToggleButton: some View {
         Button {
             hapticMedium.impactOccurred()
             hapticMedium.prepare()
             withAnimation(Theme.tapSpring) {
                 controlsExpanded.toggle()
+                if !controlsExpanded {
+                    activePanel = nil
+                }
             }
         } label: {
-            HStack(spacing: 10) {
-                Image(systemName: "chevron.up")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundColor(Theme.accent)
-                    .frame(width: 26, height: 26)
-                    .background(Theme.accent.opacity(0.14), in: Circle())
+            ZStack(alignment: .topTrailing) {
+                Image(systemName: controlsExpanded ? "slider.horizontal.3" : "slider.horizontal.3")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundColor(controlsExpanded ? Theme.bg : Theme.accent)
+                    .frame(width: 52, height: 52)
+                    .background(ControlChipBackground(isActive: controlsExpanded))
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .shadow(color: controlsExpanded ? Theme.accent.opacity(0.28) : .black.opacity(0.26), radius: 10, y: 4)
+                    .contentShape(Rectangle())
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("TOOLS")
-                        .font(.system(size: 10, weight: .bold, design: .monospaced))
-                        .tracking(1.8)
-                        .foregroundColor(Theme.textPrimary)
-                    Text(activeToolsSummary)
-                        .font(.system(size: 11, weight: .bold, design: .monospaced))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.75)
-                        .foregroundColor(Theme.textSecondary)
-                }
-
-                Spacer(minLength: 0)
-
-                HStack(spacing: 5) {
-                    ForEach(Array(activeToolDots.enumerated()), id: \.offset) { _, isActive in
-                        Circle()
-                            .fill(isActive ? Theme.accent : Color.white.opacity(0.18))
-                            .frame(width: 6, height: 6)
-                    }
+                if activeToolDots.contains(true) {
+                    Circle()
+                        .fill(Theme.accent)
+                        .frame(width: 8, height: 8)
+                        .overlay(Circle().stroke(Color.black.opacity(0.45), lineWidth: 1))
+                        .offset(x: -5, y: 5)
                 }
             }
-            .padding(.horizontal, 14)
-            .frame(height: 50)
-            .background(
-                LinearGradient(
-                    colors: [
-                        Color.black.opacity(0.72),
-                        Theme.panel.opacity(0.88)
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                ),
-                in: Capsule()
-            )
-            .overlay(Capsule().strokeBorder(Color.white.opacity(0.10), lineWidth: 1))
-            .shadow(color: .black.opacity(0.36), radius: 16, y: 8)
-            .shadow(color: Theme.accent.opacity(0.10), radius: 16)
         }
         .buttonStyle(DimPressStyle())
+        .accessibilityLabel(controlsExpanded ? "Hide controls" : "Show controls")
     }
 
     private var controlsDrawer: some View {
@@ -667,7 +643,6 @@ struct CameraView: View {
         )
         .shadow(color: .black.opacity(0.45), radius: 22, y: 12)
         .shadow(color: Theme.accent.opacity(0.10), radius: 22)
-        .gesture(controlsRevealGesture)
         .animation(Theme.tapSpring, value: activePanel)
     }
 
@@ -928,18 +903,6 @@ struct CameraView: View {
                     }
                 }
             }
-    }
-
-    private var activeToolsSummary: String {
-        var labels: [String] = []
-        if selfTimerSeconds > 0 { labels.append("\(selfTimerSeconds)S") }
-        if showGrid { labels.append("GRID") }
-        if showLevel { labels.append("LEVEL") }
-        if tapTarget == .meter { labels.append("METER") }
-        if antiShakeEnabled { labels.append("SHAKE") }
-        if bracketEnabled { labels.append("BRKT") }
-        if camera.isFocusLocked || camera.isExposureLocked { labels.append("LOCK") }
-        return labels.isEmpty ? "Swipe up for controls" : labels.prefix(3).joined(separator: " + ")
     }
 
     private var activeToolDots: [Bool] {
@@ -1741,7 +1704,7 @@ struct HelpSheet: View {
                     helpCard(
                         icon: "timer",
                         title: "CAPTURE AIDS",
-                        body: "Swipe up on TOOLS to reveal the full control panel, or swipe down to hide it. GRID and LEVEL help composition. TIMER gives you 3s or 10s delay. SHAKE waits briefly for steadier hands. BRKT saves three RAW frames at different EV values."
+                        body: "Tap the control icon next to the photo thumbnail to show or hide the full panel. You can also swipe up to reveal controls and swipe down to hide them. GRID and LEVEL help composition. TIMER gives you 3s or 10s delay. SHAKE waits briefly for steadier hands. BRKT saves three RAW frames at different EV values."
                     )
 
                     helpCard(
