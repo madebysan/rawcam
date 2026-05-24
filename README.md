@@ -1,24 +1,16 @@
+<img src="assets/app-icon.png" width="128" height="128" alt="RawCam app icon">
 
-<p align="center">
-  <img src="assets/app-icon.png" width="128" height="128" alt="RawCam app icon">
-</p>
-<h1 align="center">RawCam</h1>
-<p align="center">A minimal iOS camera. Saves only the sensor's raw DNG.</p>
-<p align="center"><strong>v1.0</strong> · iOS 17+</p>
+# RawCam
 
-<p align="center">
-  <a href="https://apps.apple.com/us/app/rawcam-raw-dng-camera/id6765531876">
-    <img src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg" alt="Download on the App Store" height="50">
-  </a>
-</p>
+A minimal iOS camera. Saves only the sensor's raw DNG.
 
----
+**v1.0** · iOS 17+
 
-<p align="center">
-  <img src="assets/screenshot.png" width="720" alt="RawCam interface, info panel, and a side-by-side comparison of the same scene captured with RawCam and the iOS Camera app">
-</p>
+<a href="https://apps.apple.com/us/app/rawcam-raw-dng-camera/id6765531876">
+  <img src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg" alt="Download on the App Store" height="50">
+</a>
 
----
+![RawCam interface, info panel, and a side-by-side comparison of the same scene captured with RawCam and the iOS Camera app](assets/screenshot.png)
 
 RawCam is a minimal iOS camera that saves only the sensor's raw DNG. Tap the shutter, open the file in Lightroom or any RAW editor, and process it yourself.
 
@@ -31,11 +23,15 @@ RawCam is a minimal iOS camera that saves only the sensor's raw DNG. Tap the shu
 - **EV compensation.** Adjust auto exposure without switching to full manual.
 - **Separate metering.** Switch tap mode between focus and exposure targeting.
 - **White balance controls.** Use auto, daylight, cloudy, tungsten, fluorescent, or Kelvin.
+- **Lens selector.** Switch supported rear lenses and see RAW availability honestly.
 - **Grid + level.** Optional composition grid and horizon level.
+- **Focus aids.** Focus loupe and optional focus peaking for sharper manual checks.
 - **Self-timer.** Off / 3s / 10s.
+- **Volume-button shutter.** Use the hardware volume buttons as a shutter release.
 - **Anti-shake shutter.** Waits for the phone to steady before firing.
 - **RAW bracketing.** Captures three RAW frames at different EV values.
-- **Last-shot details.** Shows mode, ISO, shutter, EV, white balance, and clipping.
+- **Last-shot details.** Shows mode, lens, ISO, shutter, EV, white balance, and clipping.
+- **App Shortcut.** Launch RawCam from Shortcuts, Siri, Spotlight, or the Action Button on supported iPhones.
 - **Flash toggle.** Off / on / auto.
 - **Front / back camera** switch.
 - **Live histogram.** 8-bar readout with highlight/shadow clipping warnings.
@@ -72,7 +68,7 @@ xcrun xctrace list devices
 
 ## Alternatives
 
-RawCam is barebones. For manual controls, focus peaking, ProRAW, or a polished UI, use [Halide](https://halide.cam), [ProCamera](https://www.procamera-app.com), or [Not Boring Camera](https://notbor.ing/products/camera) instead. All three are good.
+RawCam stays focused on clean DNG capture. If you need ProRAW processing, video, film looks, or a full editing lab, use [Halide](https://halide.cam), [ProCamera](https://www.procamera-app.com), or [Not Boring Camera](https://notbor.ing/products/camera). All three are good.
 
 RawCam is the free, open-source version that does one thing.
 

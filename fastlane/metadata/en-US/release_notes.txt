@@ -1,1 +1,1 @@
-Adds more capture tools from paid pro camera apps: anti-shake shutter, three-shot RAW bracketing, and a last-shot details panel. Also includes grid, horizon level, clipping warnings, self-timer, EV compensation, and separate focus/exposure targeting.
+Adds more pro camera controls: lens selection, focus loupe, focus peaking, volume-button shutter, persistent settings, and an App Shortcut for quick launch. Also includes the earlier grid, horizon level, clipping warnings, self-timer, EV compensation, anti-shake shutter, RAW bracketing, and last-shot details.

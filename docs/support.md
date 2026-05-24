@@ -37,9 +37,17 @@ Tap `EXP` above the shutter to adjust exposure. In auto mode, the slider changes
 
 When focus or exposure is locked, the `AF/AE` badge turns yellow. Tap it to return to auto focus and auto exposure.
 
+### How does the lens selector work?
+
+Tap `LENS` to switch between supported rear cameras. RawCam shows RAW availability for the selected lens instead of hiding device limits. Some iPhone/simulator combinations may only expose one usable camera.
+
 ### How do separate focus and exposure points work?
 
 The `TAP` control switches what a preview tap does. `FOCUS` sets focus. `METER` sets the exposure point without moving focus. The exposure point shows as a yellow `AE` target.
+
+### What are the focus loupe and PEAK controls?
+
+When you tap to focus, RawCam briefly shows a magnified loupe around the focus point. `PEAK` adds a red edge overlay on high-contrast detail so it is easier to judge sharpness.
 
 ### What are GRID, LEVEL, and TIMER?
 
@@ -51,7 +59,15 @@ The `TAP` control switches what a preview tap does. `FOCUS` sets focus. `METER` 
 
 `BRKT` captures three RAW photos at different EV values: one darker, one normal, one brighter. It only works in RAW mode with auto exposure.
 
-`LAST` shows the settings from the last saved capture: mode, ISO, shutter, EV, white balance, and whether the live histogram was clipping.
+`LAST` shows the settings from the last saved capture: mode, lens, ISO, shutter, EV, white balance, and whether the live histogram was clipping. After a successful save, a compact last-shot strip also appears above the controls.
+
+### Can I use the volume buttons as the shutter?
+
+Yes. While RawCam is open, the hardware volume buttons trigger the shutter. This is useful when the phone is on a tripod or when tapping the screen would move the frame.
+
+### Can I launch RawCam from the Action Button or Shortcuts?
+
+Yes. RawCam includes an App Shortcut named `Open Camera`. It can be used from Shortcuts, Siri, Spotlight, and the Action Button on iPhones that support Action Button shortcuts.
 
 ### Why is the resolution 12 megapixels and not 48?
 

@@ -16,10 +16,14 @@ WHAT YOU GET
 • EV compensation for auto exposure
 • Separate focus and exposure targeting
 • White balance controls with presets and Kelvin adjustment
+• Lens selector with RAW availability
+• Focus loupe and focus peaking
 • Optional grid, horizon level, and self-timer
+• Volume-button shutter
 • Anti-shake shutter that waits for steadier hands
 • Three-shot RAW exposure bracketing
-• Last-shot details for ISO, shutter, EV, white balance, and clipping
+• Last-shot details for lens, ISO, shutter, EV, white balance, and clipping
+• App Shortcut for Shortcuts, Siri, Spotlight, and Action Button launch
 • Flash with off, on, and auto modes
 • Front and back camera switch
 • Live histogram with highlight and shadow clipping warnings

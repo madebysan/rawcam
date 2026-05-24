@@ -11,9 +11,10 @@ Updated every session via `/save-session`.
 - **Manual controls drawer:** exposed the existing manual exposure and white-balance controls above the shutter, with ISO, shutter speed, presets, Kelvin adjustment, and a tappable AF/AE unlock badge.
 - **Capture aids:** added grid, horizon level, clipping warnings, self-timer, EV compensation, and separate focus/exposure targeting.
 - **Shooting workflow:** added anti-shake shutter, three-shot RAW bracketing, and a last-shot details panel.
+- **Competitor parity batch:** added lens selection, focus loupe, focus peaking, volume-button shutter, persistent settings, a last-shot session strip, and an App Shortcut for Shortcuts/Siri/Action Button launch.
 
 ### Docs
-- **Feature copy:** updated README, support docs, and App Store metadata for the new capture controls.
+- **Feature copy:** updated README, support docs, backlog, and App Store metadata for the new capture controls.
 
 ### Status: local build passing
 

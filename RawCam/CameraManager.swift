@@ -46,11 +46,19 @@ enum WhiteBalancePreset: String, CaseIterable {
 
 struct CaptureDetails {
     let mode: String
+    let lens: String
     let iso: Int
     let shutter: String
     let ev: String
     let whiteBalance: String
     let clipping: String
+}
+
+struct CameraLens: Identifiable, Hashable {
+    let id: String
+    let label: String
+    let deviceType: AVCaptureDevice.DeviceType
+    let rawSupported: Bool
 }
 
 class CameraManager: NSObject, ObservableObject {
@@ -69,6 +77,9 @@ class CameraManager: NSObject, ObservableObject {
     @Published var isUsingFrontCamera = false
     @Published var rawSupported = false
     @Published var lastCaptureDetails: CaptureDetails?
+    @Published var availableLenses: [CameraLens] = []
+    @Published var selectedLensID: String?
+    @Published var focusPeakingImage: UIImage?
 
     // Capture mode
     @Published var captureMode: CaptureMode = .raw
@@ -106,6 +117,7 @@ class CameraManager: NSObject, ObservableObject {
     private var isConfigured = false
     private let histogramQueue = DispatchQueue(label: "com.rawcam.histogram", qos: .utility)
     private var frameCounter = 0
+    private var focusPeakingEnabled = false
 
     // Coverage mode storage
     private var coverageRAWData: Data?
@@ -127,15 +139,18 @@ class CameraManager: NSObject, ObservableObject {
         session.beginConfiguration()
         session.sessionPreset = .photo
 
+        refreshAvailableLenses()
         addCamera(position: .back)
 
         if session.canAddOutput(photoOutput) {
             session.addOutput(photoOutput)
-            photoOutput.isHighResolutionCaptureEnabled = true
             rawSupported = !photoOutput.availableRawPhotoPixelFormatTypes.isEmpty
         }
 
         // Video output for histogram
+        videoOutput.videoSettings = [
+            kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA
+        ]
         videoOutput.setSampleBufferDelegate(self, queue: histogramQueue)
         videoOutput.alwaysDiscardsLateVideoFrames = true
         if session.canAddOutput(videoOutput) {
@@ -152,12 +167,17 @@ class CameraManager: NSObject, ObservableObject {
             session.removeInput(input)
         }
 
-        guard let device = bestCamera(for: position) else {
+        let selectedDevice = availableLenses
+            .first { $0.id == selectedLensID }
+            .flatMap { AVCaptureDevice.default($0.deviceType, for: .video, position: position) }
+
+        guard let device = selectedDevice ?? bestCamera(for: position) else {
             errorMessage = "No camera available"
             return
         }
 
         currentDevice = device
+        selectedLensID = device.uniqueID
 
         do {
             let input = try AVCaptureDeviceInput(device: device)
@@ -176,6 +196,43 @@ class CameraManager: NSObject, ObservableObject {
         return AVCaptureDevice.default(for: .video)
     }
 
+    private func refreshAvailableLenses() {
+        let session = AVCaptureDevice.DiscoverySession(
+            deviceTypes: [.builtInUltraWideCamera, .builtInWideAngleCamera, .builtInTelephotoCamera],
+            mediaType: .video,
+            position: .back
+        )
+
+        let lenses = session.devices.map { device in
+            CameraLens(
+                id: device.uniqueID,
+                label: lensLabel(for: device.deviceType),
+                deviceType: device.deviceType,
+                rawSupported: !AVCapturePhotoOutput().availableRawPhotoPixelFormatTypes.isEmpty
+            )
+        }
+
+        availableLenses = lenses.isEmpty
+            ? bestCamera(for: .back).map {
+                [CameraLens(
+                    id: $0.uniqueID,
+                    label: lensLabel(for: $0.deviceType),
+                    deviceType: $0.deviceType,
+                    rawSupported: rawSupported
+                )]
+            } ?? []
+            : lenses
+    }
+
+    private func lensLabel(for deviceType: AVCaptureDevice.DeviceType) -> String {
+        switch deviceType {
+        case .builtInUltraWideCamera: return "0.5x"
+        case .builtInWideAngleCamera: return "1x"
+        case .builtInTelephotoCamera: return "2x"
+        default: return "1x"
+        }
+    }
+
     private func updateDeviceLimits() {
         guard let device = currentDevice else { return }
         minISO = device.activeFormat.minISO
@@ -186,6 +243,15 @@ class CameraManager: NSObject, ObservableObject {
         maxExposureBias = device.maxExposureTargetBias
         exposureBias = device.exposureTargetBias.clamped(to: minExposureBias...maxExposureBias)
         iso = iso.clamped(to: minISO...maxISO)
+        if let index = availableLenses.firstIndex(where: { $0.id == device.uniqueID }) {
+            let updated = CameraLens(
+                id: availableLenses[index].id,
+                label: availableLenses[index].label,
+                deviceType: availableLenses[index].deviceType,
+                rawSupported: rawSupported
+            )
+            availableLenses[index] = updated
+        }
     }
 
     func start() {
@@ -198,6 +264,11 @@ class CameraManager: NSObject, ObservableObject {
     func switchCamera() {
         session.beginConfiguration()
         isUsingFrontCamera.toggle()
+        if isUsingFrontCamera {
+            selectedLensID = nil
+        } else if selectedLensID == nil {
+            selectedLensID = availableLenses.first?.id
+        }
         addCamera(position: isUsingFrontCamera ? .front : .back)
         rawSupported = !photoOutput.availableRawPhotoPixelFormatTypes.isEmpty
         session.commitConfiguration()
@@ -211,6 +282,26 @@ class CameraManager: NSObject, ObservableObject {
         showExposureIndicator = false
         exposureBias = 0
         whiteBalancePreset = .auto
+    }
+
+    func switchLens(to lens: CameraLens) {
+        guard !isUsingFrontCamera, lens.id != selectedLensID else { return }
+
+        session.beginConfiguration()
+        selectedLensID = lens.id
+        addCamera(position: .back)
+        rawSupported = !photoOutput.availableRawPhotoPixelFormatTypes.isEmpty
+        session.commitConfiguration()
+        updateDeviceLimits()
+
+        isManualExposure = false
+        isExposureLocked = false
+        isFocusLocked = false
+        exposurePoint = nil
+        showFocusIndicator = false
+        showExposureIndicator = false
+        exposureBias = 0
+        setExposureBias(0)
     }
 
     // MARK: - Flash
@@ -446,6 +537,13 @@ class CameraManager: NSObject, ObservableObject {
         }
     }
 
+    func setFocusPeakingEnabled(_ enabled: Bool) {
+        focusPeakingEnabled = enabled
+        if !enabled {
+            focusPeakingImage = nil
+        }
+    }
+
     // MARK: - Capture
 
     func capturePhoto(bracketed: Bool = false) {
@@ -645,6 +743,7 @@ class CameraManager: NSObject, ObservableObject {
 
         return CaptureDetails(
             mode: label,
+            lens: activeLensLabel,
             iso: Int(actualISO),
             shutter: shutterText,
             ev: evText,
@@ -660,6 +759,11 @@ class CameraManager: NSObject, ObservableObject {
             setExposureBias(bracketOriginalBias)
         }
         isTakingPhoto = false
+    }
+
+    private var activeLensLabel: String {
+        guard let currentDevice else { return "1x" }
+        return lensLabel(for: currentDevice.deviceType)
     }
 }
 
@@ -739,9 +843,21 @@ extension CameraManager: AVCaptureVideoDataOutputSampleBufferDelegate {
             }
         }
 
+        let peakingImage = focusPeakingEnabled
+            ? makeFocusPeakingImage(
+                from: buffer,
+                width: width,
+                height: height,
+                bytesPerRow: bytesPerRow
+            )
+            : nil
+
         DispatchQueue.main.async {
             self.histogramData = histogram
             self.updateClippingFlags(from: histogram)
+            if self.focusPeakingEnabled {
+                self.focusPeakingImage = peakingImage
+            }
         }
     }
 
@@ -760,6 +876,67 @@ extension CameraManager: AVCaptureVideoDataOutputSampleBufferDelegate {
 
         isShadowClipping = Double(shadowCount) > threshold
         isHighlightClipping = Double(highlightCount) > threshold
+    }
+
+    private func makeFocusPeakingImage(
+        from buffer: UnsafePointer<UInt8>,
+        width: Int,
+        height: Int,
+        bytesPerRow: Int
+    ) -> UIImage? {
+        let outputWidth = 180
+        let outputHeight = max(1, Int(Double(height) / Double(width) * Double(outputWidth)))
+        let stepX = max(width / outputWidth, 1)
+        let stepY = max(height / outputHeight, 1)
+        var pixels = [UInt8](repeating: 0, count: outputWidth * outputHeight * 4)
+
+        func luma(_ sourceX: Int, _ sourceY: Int) -> Int {
+            let x = min(max(sourceX, 0), width - 1)
+            let y = min(max(sourceY, 0), height - 1)
+            let offset = y * bytesPerRow + x * 4
+            let b = Int(buffer[offset])
+            let g = Int(buffer[offset + 1])
+            let r = Int(buffer[offset + 2])
+            return (r * 77 + g * 150 + b * 29) >> 8
+        }
+
+        for y in 1..<(outputHeight - 1) {
+            for x in 1..<(outputWidth - 1) {
+                let sourceX = x * stepX
+                let sourceY = y * stepY
+                let horizontal = abs(luma(sourceX + stepX, sourceY) - luma(sourceX - stepX, sourceY))
+                let vertical = abs(luma(sourceX, sourceY + stepY) - luma(sourceX, sourceY - stepY))
+                let edge = horizontal + vertical
+
+                guard edge > 58 else { continue }
+
+                let offset = (y * outputWidth + x) * 4
+                pixels[offset] = 255
+                pixels[offset + 1] = 56
+                pixels[offset + 2] = 28
+                pixels[offset + 3] = UInt8(min(edge * 3, 210))
+            }
+        }
+
+        guard let provider = CGDataProvider(data: Data(pixels) as CFData),
+              let image = CGImage(
+                width: outputWidth,
+                height: outputHeight,
+                bitsPerComponent: 8,
+                bitsPerPixel: 32,
+                bytesPerRow: outputWidth * 4,
+                space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedLast.rawValue),
+                provider: provider,
+                decode: nil,
+                shouldInterpolate: false,
+                intent: .defaultIntent
+              )
+        else {
+            return nil
+        }
+
+        return UIImage(cgImage: image)
     }
 }
 

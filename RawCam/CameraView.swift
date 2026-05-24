@@ -1,6 +1,7 @@
 import SwiftUI
 import AVFoundation
 import CoreMotion
+import MediaPlayer
 
 // MARK: - Theme
 
@@ -24,6 +25,7 @@ struct CameraView: View {
     private enum ControlPanel {
         case exposure
         case whiteBalance
+        case lens
     }
 
     private enum TapTarget {
@@ -33,21 +35,25 @@ struct CameraView: View {
 
     @StateObject private var camera = CameraManager()
     @StateObject private var level = LevelManager()
+    @StateObject private var volumeButtons = VolumeButtonObserver()
     @State private var showPermissionDenied = false
     @State private var viewSize: CGSize = .zero
 
     // Panel state
     @State private var showHelp = false
     @State private var activePanel: ControlPanel?
-    @State private var tapTarget: TapTarget = .focus
-    @State private var showGrid = false
-    @State private var showLevel = false
-    @State private var selfTimerSeconds = 0
+    @AppStorage("tapTarget") private var tapTargetRaw = "focus"
+    @AppStorage("showGrid") private var showGrid = false
+    @AppStorage("showLevel") private var showLevel = false
+    @AppStorage("focusPeakingEnabled") private var focusPeakingEnabled = false
+    @AppStorage("selfTimerSeconds") private var selfTimerSeconds = 0
+    @AppStorage("antiShakeEnabled") private var antiShakeEnabled = false
+    @AppStorage("bracketEnabled") private var bracketEnabled = false
+    @AppStorage("captureMode") private var persistedCaptureMode = CaptureMode.raw.rawValue
     @State private var countdown: Int?
-    @State private var antiShakeEnabled = false
-    @State private var bracketEnabled = false
     @State private var waitingForSteadyShot = false
     @State private var showLastDetails = false
+    @State private var focusLoupePoint: CGPoint?
 
     // Shutter animation
     @State private var shutterPulse = 0
@@ -55,6 +61,11 @@ struct CameraView: View {
 
     private let hapticMedium = UIImpactFeedbackGenerator(style: .medium)
     private let hapticHeavy  = UIImpactFeedbackGenerator(style: .heavy)
+
+    private var tapTarget: TapTarget {
+        get { tapTargetRaw == "meter" ? .meter : .focus }
+        nonmutating set { tapTargetRaw = newValue == .meter ? "meter" : "focus" }
+    }
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -82,6 +93,17 @@ struct CameraView: View {
                     .allowsHitTesting(false)
             }
 
+            if focusPeakingEnabled, let image = camera.focusPeakingImage {
+                Image(uiImage: image)
+                    .resizable()
+                    .interpolation(.none)
+                    .aspectRatio(contentMode: .fill)
+                    .ignoresSafeArea()
+                    .opacity(0.72)
+                    .blendMode(.screen)
+                    .allowsHitTesting(false)
+            }
+
             // Flash white overlay on capture
             if flashOverlay {
                 Color.white.opacity(0.25)
@@ -98,6 +120,15 @@ struct CameraView: View {
             if camera.showExposureIndicator, let pt = camera.exposurePoint {
                 ExposureTarget()
                     .position(pt)
+            }
+
+            if let focusLoupePoint {
+                FocusLoupe(
+                    session: camera.session,
+                    point: focusLoupePoint,
+                    viewSize: viewSize
+                )
+                .allowsHitTesting(false)
             }
 
             if let countdown {
@@ -120,6 +151,11 @@ struct CameraView: View {
             mainControls
                 .padding(.horizontal, 24)
                 .padding(.bottom, 48)
+
+            VolumeButtonCaptureView()
+                .frame(width: 1, height: 1)
+                .opacity(0.01)
+                .allowsHitTesting(false)
         }
         .animation(.easeOut(duration: 0.08), value: flashOverlay)
         .animation(Theme.tapSpring, value: camera.showFocusIndicator)
@@ -128,10 +164,27 @@ struct CameraView: View {
             hapticMedium.prepare()
             hapticHeavy.prepare()
             level.start()
+            camera.captureMode = CaptureMode(rawValue: persistedCaptureMode) ?? .raw
+            camera.setFocusPeakingEnabled(focusPeakingEnabled)
+            volumeButtons.start()
             checkPermissionAndStart()
         }
         .onDisappear {
             level.stop()
+            volumeButtons.stop()
+            camera.setFocusPeakingEnabled(false)
+        }
+        .onChange(of: camera.captureMode) { _, mode in
+            persistedCaptureMode = mode.rawValue
+        }
+        .onChange(of: focusPeakingEnabled) { _, enabled in
+            camera.setFocusPeakingEnabled(enabled)
+        }
+        .onReceive(volumeButtons.$pressCount.dropFirst()) { _ in
+            guard volumeButtons.isListening else { return }
+            hapticHeavy.impactOccurred()
+            hapticHeavy.prepare()
+            triggerCapture()
         }
         .alert("Camera Access Required", isPresented: $showPermissionDenied) {
             Button("Open Settings") {
@@ -162,6 +215,7 @@ struct CameraView: View {
                     camera.meterExposure(at: v.location, in: viewSize)
                 } else {
                     camera.focus(at: v.location, in: viewSize)
+                    showFocusLoupe(at: v.location)
                 }
             },
             LongPressGesture(minimumDuration: 0.5)
@@ -173,6 +227,7 @@ struct CameraView: View {
                             hapticHeavy.impactOccurred()
                             hapticHeavy.prepare()
                             camera.lockFocus(at: loc, in: viewSize)
+                            showFocusLoupe(at: loc)
                         }
                     default: break
                     }
@@ -433,6 +488,13 @@ struct CameraView: View {
 
     private var mainControls: some View {
         VStack(spacing: 10) {
+            if let details = camera.lastCaptureDetails {
+                LastCaptureStrip(details: details) {
+                    showLastDetails = true
+                }
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+
             controlsDrawer
 
             // Saved / error feedback
@@ -532,6 +594,11 @@ struct CameraView: View {
                 wbPanel
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
+
+            if activePanel == .lens {
+                lensPanel
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
         }
         .padding(.vertical, 6)
         .background(.black.opacity(0.58), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
@@ -557,6 +624,13 @@ struct CameraView: View {
                     value: whiteBalanceSummary,
                     isActive: activePanel == .whiteBalance,
                     action: { togglePanel(.whiteBalance) }
+                )
+
+                controlChip(
+                    title: "LENS",
+                    value: activeLensSummary,
+                    isActive: activePanel == .lens,
+                    action: { togglePanel(.lens) }
                 )
 
                 focusLockChip
@@ -594,6 +668,13 @@ struct CameraView: View {
 
             HStack(spacing: 8) {
                 controlChip(
+                    title: "PEAK",
+                    value: focusPeakingEnabled ? "ON" : "OFF",
+                    isActive: focusPeakingEnabled,
+                    action: { focusPeakingEnabled.toggle() }
+                )
+
+                controlChip(
                     title: "SHAKE",
                     value: antiShakeEnabled ? "ON" : "OFF",
                     isActive: antiShakeEnabled,
@@ -623,6 +704,49 @@ struct CameraView: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
+    }
+
+    private var lensPanel: some View {
+        VStack(spacing: 12) {
+            Divider().background(Theme.surfaceHigh).padding(.horizontal, 16)
+
+            HStack(spacing: 8) {
+                ForEach(camera.availableLenses) { lens in
+                    let isSelected = camera.selectedLensID == lens.id
+                    Button {
+                        hapticMedium.impactOccurred()
+                        hapticMedium.prepare()
+                        camera.switchLens(to: lens)
+                    } label: {
+                        VStack(spacing: 3) {
+                            Text(lens.label)
+                                .font(.system(size: 14, weight: .bold, design: .monospaced))
+                            Text(isSelected ? (lens.rawSupported ? "RAW" : "NO RAW") : "CHECK")
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .tracking(0.8)
+                        }
+                        .foregroundColor(isSelected ? Theme.bg : Theme.textPrimary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(
+                            isSelected ? Theme.accent : Theme.surface,
+                            in: RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        )
+                    }
+                    .buttonStyle(DimPressStyle())
+                }
+            }
+            .padding(.horizontal, 20)
+
+            if camera.availableLenses.isEmpty {
+                Text("Lens selection appears on devices with multiple rear cameras.")
+                    .font(.system(size: 12, weight: .medium, design: .rounded))
+                    .foregroundColor(Theme.textSecondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 20)
+            }
+        }
+        .padding(.vertical, 8)
     }
 
     private var focusLockChip: some View {
@@ -695,6 +819,10 @@ struct CameraView: View {
         return "AUTO"
     }
 
+    private var activeLensSummary: String {
+        camera.availableLenses.first { $0.id == camera.selectedLensID }?.label ?? "1x"
+    }
+
     private func togglePanel(_ panel: ControlPanel) {
         withAnimation(Theme.tapSpring) {
             activePanel = activePanel == panel ? nil : panel
@@ -710,6 +838,15 @@ struct CameraView: View {
         case 0: selfTimerSeconds = 3
         case 3: selfTimerSeconds = 10
         default: selfTimerSeconds = 0
+        }
+    }
+
+    private func showFocusLoupe(at point: CGPoint) {
+        focusLoupePoint = point
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.1) {
+            if focusLoupePoint == point {
+                focusLoupePoint = nil
+            }
         }
     }
 
@@ -1000,6 +1137,42 @@ struct ExposureTarget: View {
     }
 }
 
+struct FocusLoupe: View {
+    let session: AVCaptureSession
+    let point: CGPoint
+    let viewSize: CGSize
+
+    private let size: CGFloat = 124
+    private let scale: CGFloat = 2.2
+
+    private var clampedPosition: CGPoint {
+        CGPoint(
+            x: min(max(point.x, size / 2 + 12), max(size / 2 + 12, viewSize.width - size / 2 - 12)),
+            y: min(max(point.y - 116, size / 2 + 72), max(size / 2 + 72, viewSize.height - size / 2 - 220))
+        )
+    }
+
+    private var previewOffset: CGSize {
+        CGSize(
+            width: (viewSize.width / 2 - point.x) * scale,
+            height: (viewSize.height / 2 - point.y) * scale
+        )
+    }
+
+    var body: some View {
+        CameraPreviewView(session: session)
+            .scaleEffect(scale)
+            .offset(previewOffset)
+            .frame(width: size, height: size)
+            .clipShape(Circle())
+            .overlay(Circle().strokeBorder(Color.white, lineWidth: 2))
+            .overlay(Circle().strokeBorder(Color.black.opacity(0.35), lineWidth: 5))
+            .shadow(color: .black.opacity(0.55), radius: 14)
+            .position(clampedPosition)
+            .transition(.scale(scale: 0.8).combined(with: .opacity))
+    }
+}
+
 struct CornerBracket: Shape {
     func path(in rect: CGRect) -> Path {
         let len: CGFloat = 12
@@ -1193,6 +1366,7 @@ struct LastCaptureSheet: View {
                 if let details {
                     VStack(spacing: 10) {
                         detailRow("MODE", details.mode)
+                        detailRow("LENS", details.lens)
                         detailRow("ISO", "\(details.iso)")
                         detailRow("SHUTTER", details.shutter)
                         detailRow("EV", details.ev)
@@ -1229,6 +1403,53 @@ struct LastCaptureSheet: View {
     }
 }
 
+struct LastCaptureStrip: View {
+    let details: CaptureDetails
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.green)
+
+                Text(details.mode)
+                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                    .foregroundColor(.white)
+                    .tracking(0.8)
+
+                Divider()
+                    .frame(height: 14)
+                    .background(Color.white.opacity(0.18))
+
+                Text(details.lens)
+                Text("ISO \(details.iso)")
+                Text(details.shutter)
+                Text("EV \(details.ev)")
+
+                Spacer(minLength: 0)
+
+                Image(systemName: "chevron.up")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(Color(white: 0.55))
+            }
+            .font(.system(size: 10, weight: .bold, design: .monospaced))
+            .foregroundColor(Color(white: 0.70))
+            .lineLimit(1)
+            .minimumScaleFactor(0.72)
+            .padding(.horizontal, 12)
+            .frame(height: 36)
+            .background(Color.black.opacity(0.64), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.10), lineWidth: 1)
+            )
+        }
+        .buttonStyle(DimPressStyle())
+    }
+}
+
 final class LevelManager: ObservableObject {
     @Published var roll: Double = 0
     @Published var motionScore: Double = 1
@@ -1257,6 +1478,53 @@ final class LevelManager: ObservableObject {
     func stop() {
         motionManager.stopDeviceMotionUpdates()
     }
+}
+
+final class VolumeButtonObserver: ObservableObject {
+    @Published var pressCount = 0
+    @Published var isListening = false
+
+    private var observation: NSKeyValueObservation?
+    private var baselineVolume: Float?
+
+    func start() {
+        let session = AVAudioSession.sharedInstance()
+        try? session.setActive(true)
+        baselineVolume = session.outputVolume
+        isListening = true
+
+        observation = session.observe(\.outputVolume, options: [.new]) { [weak self] session, _ in
+            guard let self, self.isListening else { return }
+            let current = session.outputVolume
+            guard let baseline = self.baselineVolume else {
+                self.baselineVolume = current
+                return
+            }
+
+            guard abs(current - baseline) > 0.01 else { return }
+
+            DispatchQueue.main.async {
+                self.baselineVolume = current
+                self.pressCount += 1
+            }
+        }
+    }
+
+    func stop() {
+        isListening = false
+        observation?.invalidate()
+        observation = nil
+    }
+}
+
+struct VolumeButtonCaptureView: UIViewRepresentable {
+    func makeUIView(context: Context) -> MPVolumeView {
+        let view = MPVolumeView(frame: .zero)
+        view.showsVolumeSlider = true
+        return view
+    }
+
+    func updateUIView(_ uiView: MPVolumeView, context: Context) {}
 }
 
 // MARK: - Help Sheet

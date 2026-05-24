@@ -12,6 +12,7 @@
 		A10000010000000000000003 /* CameraManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000020000000000000003; };
 		A10000010000000000000004 /* CameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000020000000000000004; };
 		A10000010000000000000005 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A10000020000000000000005; };
+		A10000010000000000000006 /* RawCamShortcuts.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000020000000000000007; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -21,6 +22,7 @@
 		A10000020000000000000004 /* CameraView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraView.swift; sourceTree = "<group>"; };
 		A10000020000000000000005 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A10000020000000000000006 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A10000020000000000000007 /* RawCamShortcuts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RawCamShortcuts.swift; sourceTree = "<group>"; };
 		A10000030000000000000001 /* RawCam.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RawCam.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -50,6 +52,7 @@
 				A10000020000000000000002 /* ContentView.swift */,
 				A10000020000000000000003 /* CameraManager.swift */,
 				A10000020000000000000004 /* CameraView.swift */,
+				A10000020000000000000007 /* RawCamShortcuts.swift */,
 				A10000020000000000000005 /* Assets.xcassets */,
 				A10000020000000000000006 /* Info.plist */,
 			);
@@ -137,6 +140,7 @@
 				A10000010000000000000002 /* ContentView.swift in Sources */,
 				A10000010000000000000003 /* CameraManager.swift in Sources */,
 				A10000010000000000000004 /* CameraView.swift in Sources */,
+				A10000010000000000000006 /* RawCamShortcuts.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
