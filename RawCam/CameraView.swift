@@ -881,9 +881,13 @@ struct CameraView: View {
                         action: { cycleTimer() }
                     )
                 } else {
-                    Color.clear
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 46)
+                    controlChip(
+                        icon: videoAudioEnabled ? FeatureIcon.audio : "mic.slash",
+                        title: "AUDIO",
+                        value: videoAudioEnabled ? "ON" : "OFF",
+                        isActive: videoAudioEnabled,
+                        action: { videoAudioEnabled.toggle() }
+                    )
                 }
             }
 
@@ -912,24 +916,6 @@ struct CameraView: View {
                         isActive: steadyPhotoEnabled,
                         action: { steadyPhotoEnabled.toggle() }
                     )
-                }
-            } else {
-                HStack(spacing: 8) {
-                    controlChip(
-                        icon: videoAudioEnabled ? FeatureIcon.audio : "mic.slash",
-                        title: "AUDIO",
-                        value: videoAudioEnabled ? "ON" : "OFF",
-                        isActive: videoAudioEnabled,
-                        action: { videoAudioEnabled.toggle() }
-                    )
-
-                    Color.clear
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 46)
-
-                    Color.clear
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 46)
                 }
             }
         }
