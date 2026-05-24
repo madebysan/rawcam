@@ -1117,9 +1117,11 @@ class CameraManager: NSObject, ObservableObject {
                 return
             }
 
+            var photosAssetIdentifier: String?
             PHPhotoLibrary.shared().performChanges {
                 let request = PHAssetCreationRequest.forAsset()
                 request.addResource(with: resourceType, data: data, options: PHAssetResourceCreationOptions())
+                photosAssetIdentifier = request.placeholderForCreatedAsset?.localIdentifier
             } completionHandler: { success, error in
                 DispatchQueue.main.async {
                     if success {
@@ -1140,7 +1142,8 @@ class CameraManager: NSObject, ObservableObject {
                             self?.addMediaRollItem(
                                 details: details,
                                 thumbnail: self?.latestPreviewImage,
-                                mediaKind: "photo"
+                                mediaKind: "photo",
+                                photosAssetIdentifier: photosAssetIdentifier
                             )
                         }
                     } else {
@@ -1162,6 +1165,7 @@ class CameraManager: NSObject, ObservableObject {
                 return
             }
 
+            var processedAssetIdentifier: String?
             PHPhotoLibrary.shared().performChanges {
                 // Save as separate assets so both are visible in Photos
                 let rawRequest = PHAssetCreationRequest.forAsset()
@@ -1169,6 +1173,7 @@ class CameraManager: NSObject, ObservableObject {
 
                 let processedRequest = PHAssetCreationRequest.forAsset()
                 processedRequest.addResource(with: .photo, data: processedData, options: PHAssetResourceCreationOptions())
+                processedAssetIdentifier = processedRequest.placeholderForCreatedAsset?.localIdentifier
             } completionHandler: { success, error in
                 DispatchQueue.main.async {
                     self?.isTakingPhoto = false
@@ -1182,7 +1187,8 @@ class CameraManager: NSObject, ObservableObject {
                             self?.addMediaRollItem(
                                 details: details,
                                 thumbnail: thumbnail,
-                                mediaKind: "photo"
+                                mediaKind: "photo",
+                                photosAssetIdentifier: processedAssetIdentifier
                             )
                         }
                     } else {

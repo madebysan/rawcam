@@ -728,6 +728,21 @@ struct CameraView: View {
 
     private var controlStrip: some View {
         VStack(spacing: 8) {
+            primaryControlStrip
+
+            Divider()
+                .background(Color.white.opacity(0.12))
+                .padding(.horizontal, 2)
+                .padding(.vertical, 2)
+
+            secondaryControlStrip
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+    }
+
+    private var primaryControlStrip: some View {
+        VStack(spacing: 8) {
             HStack(spacing: 8) {
                 controlChip(
                     icon: FeatureIcon.exposure,
@@ -745,18 +760,10 @@ struct CameraView: View {
                     action: { togglePanel(.whiteBalance) }
                 )
 
-                controlChip(
-                    icon: "questionmark.circle",
-                    title: "HELP",
-                    value: "OPEN",
-                    isActive: false,
-                    action: { showHelp = true }
-                )
+                focusLockChip
             }
 
             HStack(spacing: 8) {
-                focusLockChip
-
                 controlChip(
                     icon: FeatureIcon.grid,
                     title: "GRID",
@@ -772,9 +779,7 @@ struct CameraView: View {
                     isActive: showLevel,
                     action: { showLevel.toggle() }
                 )
-            }
 
-            HStack(spacing: 8) {
                 controlChip(
                     icon: tapTarget == .meter ? FeatureIcon.meter : FeatureIcon.focus,
                     title: "TAP",
@@ -782,7 +787,9 @@ struct CameraView: View {
                     isActive: tapTarget == .meter,
                     action: { tapTarget = tapTarget == .focus ? .meter : .focus }
                 )
+            }
 
+            HStack(spacing: 8) {
                 controlChip(
                     icon: FeatureIcon.zebra,
                     title: "ZEBRA",
@@ -791,17 +798,7 @@ struct CameraView: View {
                     action: { showZebra.toggle() }
                 )
 
-                controlChip(
-                    icon: FeatureIcon.reset,
-                    title: "RESET",
-                    value: "ALL",
-                    isActive: false,
-                    action: { resetAllControls() }
-                )
-            }
-
-            if appCaptureMode == .photo {
-                HStack(spacing: 8) {
+                if appCaptureMode == .photo {
                     controlChip(
                         icon: "camera",
                         title: "FORMAT",
@@ -809,7 +806,17 @@ struct CameraView: View {
                         isActive: camera.captureMode == .coverage,
                         action: { camera.cyclePhotoFormat() }
                     )
+                } else {
+                    controlChip(
+                        icon: "video",
+                        title: "FORMAT",
+                        value: camera.selectedVideoFormat.rawValue,
+                        isActive: camera.selectedVideoFormat != .hevc,
+                        action: { camera.cycleVideoFormat() }
+                    )
+                }
 
+                if appCaptureMode == .photo {
                     controlChip(
                         icon: FeatureIcon.timer,
                         title: "TIMER",
@@ -817,23 +824,21 @@ struct CameraView: View {
                         isActive: selfTimerSeconds > 0,
                         action: { cycleTimer() }
                     )
+                } else {
+                    Color.clear
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 46)
+                }
+            }
 
+            if appCaptureMode == .photo {
+                HStack(spacing: 8) {
                     controlChip(
                         icon: FeatureIcon.bracket,
                         title: "BRKT",
                         value: bracketEnabled ? "3 RAW" : "OFF",
                         isActive: bracketEnabled,
                         action: { bracketEnabled.toggle() }
-                    )
-                }
-            } else {
-                HStack(spacing: 8) {
-                    controlChip(
-                        icon: "video",
-                        title: "FORMAT",
-                        value: camera.selectedVideoFormat.rawValue,
-                        isActive: camera.selectedVideoFormat != .hevc,
-                        action: { camera.cycleVideoFormat() }
                     )
 
                     Color.clear
@@ -846,8 +851,30 @@ struct CameraView: View {
                 }
             }
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
+    }
+
+    private var secondaryControlStrip: some View {
+        HStack(spacing: 8) {
+            controlChip(
+                icon: "questionmark.circle",
+                title: "HELP",
+                value: "OPEN",
+                isActive: false,
+                action: { showHelp = true }
+            )
+
+            controlChip(
+                icon: FeatureIcon.reset,
+                title: "RESET",
+                value: "ALL",
+                isActive: false,
+                action: { resetAllControls() }
+            )
+
+            Color.clear
+                .frame(maxWidth: .infinity)
+                .frame(height: 46)
+        }
     }
 
     private var lensPanel: some View {
@@ -1751,7 +1778,6 @@ struct RawCamRollCard: View {
                 }
             }
             .buttonStyle(DimPressStyle())
-            .disabled(!isVideo)
 
             HStack {
                 Text(item.details.mode)
