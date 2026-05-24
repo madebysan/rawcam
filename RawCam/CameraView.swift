@@ -36,11 +36,37 @@ private enum FeatureIcon {
     static let shutterShortcuts = "button.programmable"
     static let zebra = "line.diagonal"
     static let reset = "arrow.counterclockwise"
+    static let aspect = "rectangle.inset.filled"
+    static let steady = "hand.raised"
+    static let audio = "mic"
+    static let status = "checklist"
 }
 
 enum AppCaptureMode: String, CaseIterable {
     case photo = "PHOTO"
     case video = "VIDEO"
+}
+
+enum PhotoAspectGuide: String, CaseIterable {
+    case full = "FULL"
+    case square = "1:1"
+    case wide = "16:9"
+
+    var next: PhotoAspectGuide {
+        switch self {
+        case .full: return .square
+        case .square: return .wide
+        case .wide: return .full
+        }
+    }
+
+    var ratio: CGFloat? {
+        switch self {
+        case .full: return nil
+        case .square: return 1
+        case .wide: return 16.0 / 9.0
+        }
+    }
 }
 
 private extension Image {
@@ -92,6 +118,9 @@ struct CameraView: View {
     @AppStorage("showGrid") private var showGrid = false
     @AppStorage("showLevel") private var showLevel = false
     @AppStorage("showZebra") private var showZebra = false
+    @AppStorage("photoAspectGuide") private var photoAspectGuideRaw = PhotoAspectGuide.full.rawValue
+    @AppStorage("steadyPhotoEnabled") private var steadyPhotoEnabled = false
+    @AppStorage("videoAudioEnabled") private var videoAudioEnabled = true
     @AppStorage("selfTimerSeconds") private var selfTimerSeconds = 0
     @AppStorage("bracketEnabled") private var bracketEnabled = false
     @AppStorage("captureMode") private var persistedCaptureMode = CaptureMode.raw.rawValue
@@ -100,6 +129,7 @@ struct CameraView: View {
     @State private var countdown: Int?
     @State private var showLastDetails = false
     @State private var showMediaRoll = false
+    @State private var showStatus = false
     @State private var pinchStartZoom: CGFloat?
 
     // Shutter animation
@@ -117,6 +147,11 @@ struct CameraView: View {
     private var appCaptureMode: AppCaptureMode {
         get { AppCaptureMode(rawValue: persistedAppCaptureMode) ?? .photo }
         nonmutating set { persistedAppCaptureMode = newValue.rawValue }
+    }
+
+    private var photoAspectGuide: PhotoAspectGuide {
+        get { PhotoAspectGuide(rawValue: photoAspectGuideRaw) ?? .full }
+        nonmutating set { photoAspectGuideRaw = newValue.rawValue }
     }
 
     var body: some View {
@@ -143,6 +178,12 @@ struct CameraView: View {
             if showLevel {
                 HorizonLevel(roll: level.roll)
                     .padding(.bottom, controlsExpanded ? 220 : 150)
+                    .allowsHitTesting(false)
+            }
+
+            if appCaptureMode == .photo, photoAspectGuide.ratio != nil {
+                AspectGuideOverlay(ratio: photoAspectGuide.ratio, bottomInset: controlsExpanded ? 360 : 220)
+                    .ignoresSafeArea()
                     .allowsHitTesting(false)
             }
 
@@ -199,6 +240,7 @@ struct CameraView: View {
             hapticHeavy.prepare()
             level.start()
             camera.captureMode = CaptureMode(rawValue: persistedCaptureMode) ?? .raw
+            camera.setVideoAudioEnabled(videoAudioEnabled)
             volumeButtons.start()
             checkPermissionAndStart()
         }
@@ -208,6 +250,9 @@ struct CameraView: View {
         }
         .onChange(of: camera.captureMode) { _, mode in
             persistedCaptureMode = mode.rawValue
+        }
+        .onChange(of: videoAudioEnabled) { _, enabled in
+            camera.setVideoAudioEnabled(enabled)
         }
         .onReceive(volumeButtons.$pressCount.dropFirst()) { _ in
             guard volumeButtons.isListening else { return }
@@ -235,6 +280,17 @@ struct CameraView: View {
             RawCamRollSheet(items: camera.mediaItems) { item in
                 camera.thumbnail(for: item)
             }
+        }
+        .sheet(isPresented: $showStatus) {
+            StatusSheet(
+                appMode: appCaptureMode,
+                videoFormat: camera.selectedVideoFormat,
+                audioEnabled: videoAudioEnabled,
+                steadyEnabled: steadyPhotoEnabled,
+                aspectGuide: photoAspectGuide,
+                photosCount: camera.mediaItems.count,
+                rawSupported: camera.rawSupported
+            )
         }
     }
 
@@ -841,6 +897,32 @@ struct CameraView: View {
                         action: { bracketEnabled.toggle() }
                     )
 
+                    controlChip(
+                        icon: FeatureIcon.aspect,
+                        title: "ASPECT",
+                        value: photoAspectGuide.rawValue,
+                        isActive: photoAspectGuide != .full,
+                        action: { photoAspectGuide = photoAspectGuide.next }
+                    )
+
+                    controlChip(
+                        icon: FeatureIcon.steady,
+                        title: "STEADY",
+                        value: steadyPhotoEnabled ? "ON" : "OFF",
+                        isActive: steadyPhotoEnabled,
+                        action: { steadyPhotoEnabled.toggle() }
+                    )
+                }
+            } else {
+                HStack(spacing: 8) {
+                    controlChip(
+                        icon: videoAudioEnabled ? FeatureIcon.audio : "mic.slash",
+                        title: "AUDIO",
+                        value: videoAudioEnabled ? "ON" : "OFF",
+                        isActive: videoAudioEnabled,
+                        action: { videoAudioEnabled.toggle() }
+                    )
+
                     Color.clear
                         .frame(maxWidth: .infinity)
                         .frame(height: 46)
@@ -864,16 +946,20 @@ struct CameraView: View {
             )
 
             controlChip(
+                icon: FeatureIcon.status,
+                title: "STATUS",
+                value: "VIEW",
+                isActive: false,
+                action: { showStatus = true }
+            )
+
+            controlChip(
                 icon: FeatureIcon.reset,
                 title: "RESET",
                 value: "ALL",
                 isActive: false,
                 action: { resetAllControls() }
             )
-
-            Color.clear
-                .frame(maxWidth: .infinity)
-                .frame(height: 46)
         }
     }
 
@@ -1058,6 +1144,10 @@ struct CameraView: View {
         showGrid = false
         showLevel = false
         showZebra = false
+        photoAspectGuide = .full
+        steadyPhotoEnabled = false
+        videoAudioEnabled = true
+        camera.setVideoAudioEnabled(true)
         selfTimerSeconds = 0
         bracketEnabled = false
         countdown = nil
@@ -1097,11 +1187,32 @@ struct CameraView: View {
     private func performCapture() {
         switch appCaptureMode {
         case .photo:
-            triggerFlash()
-            camera.capturePhoto(bracketed: bracketEnabled)
+            performPhotoCaptureWhenReady()
         case .video:
             shutterPulse += 1
             camera.toggleVideoRecording()
+        }
+    }
+
+    private func performPhotoCaptureWhenReady() {
+        guard steadyPhotoEnabled else {
+            triggerFlash()
+            camera.capturePhoto(bracketed: bracketEnabled)
+            return
+        }
+
+        waitForSteadyPhoto(deadline: Date().addingTimeInterval(2.0))
+    }
+
+    private func waitForSteadyPhoto(deadline: Date) {
+        if level.isSteady || Date() >= deadline {
+            triggerFlash()
+            camera.capturePhoto(bracketed: bracketEnabled)
+            return
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
+            waitForSteadyPhoto(deadline: deadline)
         }
     }
 
@@ -1505,6 +1616,42 @@ struct ZebraOverlay: View {
             .stroke(Color.yellow.opacity(0.34), lineWidth: 2)
             .frame(width: geo.size.width, height: guideHeight, alignment: .top)
             .clipped()
+        }
+    }
+}
+
+struct AspectGuideOverlay: View {
+    let ratio: CGFloat?
+    let bottomInset: CGFloat
+
+    var body: some View {
+        GeometryReader { geo in
+            let guideHeight = max(geo.size.height - bottomInset, geo.size.height * 0.45)
+            let guideSize = CGSize(width: geo.size.width, height: guideHeight)
+
+            if let ratio {
+                let widthFromHeight = guideSize.height * ratio
+                let frameWidth = min(guideSize.width, widthFromHeight)
+                let frameHeight = frameWidth / ratio
+                let originX = (guideSize.width - frameWidth) / 2
+                let originY = (guideSize.height - frameHeight) / 2
+
+                Path { path in
+                    path.addRect(CGRect(x: originX, y: originY, width: frameWidth, height: frameHeight))
+                }
+                .stroke(Color.white.opacity(0.55), style: StrokeStyle(lineWidth: 1, dash: [8, 6]))
+                .background(
+                    Rectangle()
+                        .fill(Color.black.opacity(0.12))
+                        .mask(
+                            Path { path in
+                                path.addRect(CGRect(x: 0, y: 0, width: guideSize.width, height: guideSize.height))
+                                path.addRect(CGRect(x: originX, y: originY, width: frameWidth, height: frameHeight))
+                            }
+                            .fill(style: FillStyle(eoFill: true))
+                        )
+                )
+            }
         }
     }
 }
@@ -1951,6 +2098,76 @@ struct VolumeButtonCaptureView: UIViewRepresentable {
     }
 
     func updateUIView(_ uiView: MPVolumeView, context: Context) {}
+}
+
+// MARK: - Status Sheet
+
+struct StatusSheet: View {
+    @Environment(\.dismiss) var dismiss
+    let appMode: AppCaptureMode
+    let videoFormat: VideoCaptureFormat
+    let audioEnabled: Bool
+    let steadyEnabled: Bool
+    let aspectGuide: PhotoAspectGuide
+    let photosCount: Int
+    let rawSupported: Bool
+
+    var body: some View {
+        ZStack {
+            Color(red: 0.05, green: 0.05, blue: 0.05).ignoresSafeArea()
+
+            VStack(alignment: .leading, spacing: 18) {
+                HStack {
+                    Text("STATUS")
+                        .font(.system(size: 12, weight: .bold, design: .monospaced))
+                        .foregroundColor(.white)
+                        .tracking(1.8)
+
+                    Spacer()
+
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(Color(white: 0.55))
+                            .frame(width: 32, height: 32)
+                            .background(Color(white: 0.15), in: Circle())
+                    }
+                }
+
+                VStack(spacing: 10) {
+                    statusRow("MODE", appMode.rawValue)
+                    statusRow("RAW", rawSupported ? "SUPPORTED" : "UNAVAILABLE")
+                    statusRow("VIDEO", videoFormat.rawValue)
+                    statusRow("AUDIO", audioEnabled ? "ON" : "OFF")
+                    statusRow("STEADY", steadyEnabled ? "ON" : "OFF")
+                    statusRow("ASPECT", aspectGuide.rawValue)
+                    statusRow("ROLL", "\(photosCount)")
+                }
+
+                Spacer()
+            }
+            .padding(22)
+        }
+        .preferredColorScheme(.dark)
+    }
+
+    private func statusRow(_ label: String, _ value: String) -> some View {
+        HStack {
+            Text(label)
+                .font(.system(size: 11, weight: .bold, design: .monospaced))
+                .foregroundColor(Color(white: 0.42))
+                .tracking(1.4)
+            Spacer()
+            Text(value)
+                .font(.system(size: 14, weight: .bold, design: .monospaced))
+                .foregroundColor(.white)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background(Color(white: 0.10), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+    }
 }
 
 // MARK: - Help Sheet

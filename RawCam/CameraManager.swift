@@ -131,6 +131,7 @@ class CameraManager: NSObject, ObservableObject {
     @Published var videoElapsedSeconds = 0
     @Published var availableVideoFormats: [VideoCaptureFormat] = [.hevc]
     @Published var selectedVideoFormat: VideoCaptureFormat = .hevc
+    @Published var isVideoAudioEnabled = true
     @Published var isUsingFrontCamera = false
     @Published var rawSupported = false
     @Published var lastCaptureDetails: CaptureDetails?
@@ -331,6 +332,10 @@ class CameraManager: NSObject, ObservableObject {
     }
 
     private func ensureAudioInputIfAllowed() {
+        guard isVideoAudioEnabled else {
+            removeAudioInput()
+            return
+        }
         guard audioInput == nil else { return }
         guard AVCaptureDevice.authorizationStatus(for: .audio) == .authorized else { return }
         guard let device = AVCaptureDevice.default(for: .audio) else { return }
@@ -345,6 +350,22 @@ class CameraManager: NSObject, ObservableObject {
             session.commitConfiguration()
         } catch {
             errorMessage = "Cannot access microphone: \(error.localizedDescription)"
+        }
+    }
+
+    private func removeAudioInput() {
+        guard let audioInput else { return }
+        session.beginConfiguration()
+        session.removeInput(audioInput)
+        session.commitConfiguration()
+        self.audioInput = nil
+    }
+
+    func setVideoAudioEnabled(_ enabled: Bool) {
+        guard !isRecordingVideo else { return }
+        isVideoAudioEnabled = enabled
+        if !enabled {
+            removeAudioInput()
         }
     }
 
@@ -950,6 +971,8 @@ class CameraManager: NSObject, ObservableObject {
         guard !movieOutput.isRecording else { return }
 
         switch AVCaptureDevice.authorizationStatus(for: .audio) {
+        case _ where !isVideoAudioEnabled:
+            startVideoRecording()
         case .authorized:
             startVideoRecording()
         case .notDetermined:
