@@ -173,6 +173,10 @@ class CameraManager: NSObject, ObservableObject {
         session.commitConfiguration()
 
         updateDeviceLimits()
+
+        #if DEBUG
+        VideoCapabilityReporter.saveDebugReport()
+        #endif
     }
 
     private func addCamera(position: AVCaptureDevice.Position) {
