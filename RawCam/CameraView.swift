@@ -52,7 +52,6 @@ struct CameraView: View {
     @State private var countdown: Int?
     @State private var waitingForSteadyShot = false
     @State private var showLastDetails = false
-    @State private var focusLoupePoint: CGPoint?
 
     // Shutter animation
     @State private var shutterPulse = 0
@@ -92,6 +91,12 @@ struct CameraView: View {
                     .allowsHitTesting(false)
             }
 
+            if camera.isHighlightClipping {
+                ZebraOverlay(bottomInset: 360)
+                    .ignoresSafeArea()
+                    .allowsHitTesting(false)
+            }
+
             // Flash white overlay on capture
             if flashOverlay {
                 Color.white.opacity(0.25)
@@ -108,15 +113,6 @@ struct CameraView: View {
             if camera.showExposureIndicator, let pt = camera.exposurePoint {
                 ExposureTarget()
                     .position(pt)
-            }
-
-            if let focusLoupePoint {
-                FocusLoupe(
-                    session: camera.session,
-                    point: focusLoupePoint,
-                    viewSize: viewSize
-                )
-                .allowsHitTesting(false)
             }
 
             if let countdown {
@@ -198,7 +194,6 @@ struct CameraView: View {
                     camera.meterExposure(at: v.location, in: viewSize)
                 } else {
                     camera.focus(at: v.location, in: viewSize)
-                    showFocusLoupe(at: v.location)
                 }
             },
             LongPressGesture(minimumDuration: 0.5)
@@ -210,7 +205,6 @@ struct CameraView: View {
                             hapticHeavy.impactOccurred()
                             hapticHeavy.prepare()
                             camera.lockFocus(at: loc, in: viewSize)
-                            showFocusLoupe(at: loc)
                         }
                     default: break
                     }
@@ -824,15 +818,6 @@ struct CameraView: View {
         }
     }
 
-    private func showFocusLoupe(at point: CGPoint) {
-        focusLoupePoint = point
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.1) {
-            if focusLoupePoint == point {
-                focusLoupePoint = nil
-            }
-        }
-    }
-
     // MARK: - Helpers
 
     private func triggerCapture() {
@@ -1120,42 +1105,6 @@ struct ExposureTarget: View {
     }
 }
 
-struct FocusLoupe: View {
-    let session: AVCaptureSession
-    let point: CGPoint
-    let viewSize: CGSize
-
-    private let size: CGFloat = 124
-    private let scale: CGFloat = 2.2
-
-    private var clampedPosition: CGPoint {
-        CGPoint(
-            x: min(max(point.x, size / 2 + 12), max(size / 2 + 12, viewSize.width - size / 2 - 12)),
-            y: min(max(point.y - 116, size / 2 + 72), max(size / 2 + 72, viewSize.height - size / 2 - 220))
-        )
-    }
-
-    private var previewOffset: CGSize {
-        CGSize(
-            width: (viewSize.width / 2 - point.x) * scale,
-            height: (viewSize.height / 2 - point.y) * scale
-        )
-    }
-
-    var body: some View {
-        CameraPreviewView(session: session)
-            .scaleEffect(scale)
-            .offset(previewOffset)
-            .frame(width: size, height: size)
-            .clipShape(Circle())
-            .overlay(Circle().strokeBorder(Color.white, lineWidth: 2))
-            .overlay(Circle().strokeBorder(Color.black.opacity(0.35), lineWidth: 5))
-            .shadow(color: .black.opacity(0.55), radius: 14)
-            .position(clampedPosition)
-            .transition(.scale(scale: 0.8).combined(with: .opacity))
-    }
-}
-
 struct CornerBracket: Shape {
     func path(in rect: CGRect) -> Path {
         let len: CGFloat = 12
@@ -1244,6 +1193,27 @@ struct GridOverlay: View {
                 }
             }
             .stroke(Color.white.opacity(0.26), lineWidth: 0.8)
+        }
+    }
+}
+
+struct ZebraOverlay: View {
+    let bottomInset: CGFloat
+
+    var body: some View {
+        GeometryReader { geo in
+            let guideHeight = max(geo.size.height - bottomInset, geo.size.height * 0.45)
+
+            Path { path in
+                let spacing: CGFloat = 18
+                for offset in stride(from: -geo.size.height, through: geo.size.width, by: spacing) {
+                    path.move(to: CGPoint(x: offset, y: 0))
+                    path.addLine(to: CGPoint(x: offset + guideHeight, y: guideHeight))
+                }
+            }
+            .stroke(Color.yellow.opacity(0.34), lineWidth: 2)
+            .frame(width: geo.size.width, height: guideHeight, alignment: .top)
+            .clipped()
         }
     }
 }

@@ -11,13 +11,12 @@ WHAT YOU GET
 • RAW mode — saves a single 12MP DNG with zero processing
 • RAW+JPG mode — saves both a clean DNG and a processed JPEG simultaneously, useful for comparison
 • Tap to focus anywhere on the preview
-• Long-press to lock focus and exposure
+• Long-press to lock focus
 • Manual exposure controls for ISO and shutter speed
 • EV compensation for auto exposure
 • Separate focus and exposure targeting
 • White balance controls with presets and Kelvin adjustment
 • Lens selector with RAW availability
-• Focus loupe for tap-to-focus checks
 • Optional grid, horizon level, and self-timer
 • Volume-button shutter
 • Anti-shake shutter that waits for steadier hands
@@ -27,6 +26,7 @@ WHAT YOU GET
 • Flash with off, on, and auto modes
 • Front and back camera switch
 • Live histogram with highlight and shadow clipping warnings
+• Zebra stripes when highlights are clipping
 • Portrait orientation, designed for one-handed use
 
 PRIVACY

@@ -500,11 +500,6 @@ class CameraManager: NSObject, ObservableObject {
             try device.lockForConfiguration()
             device.focusPointOfInterest = devicePoint
             device.focusMode = .locked
-            if device.isExposurePointOfInterestSupported && !isManualExposure {
-                device.exposurePointOfInterest = devicePoint
-                device.exposureMode = .locked
-                isExposureLocked = true
-            }
             device.unlockForConfiguration()
 
             focusPoint = point

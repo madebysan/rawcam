@@ -35,7 +35,7 @@ Tap anywhere on the preview to focus there. The reticle shows where the camera i
 
 Tap `EXP` above the shutter to adjust exposure. In auto mode, the slider changes EV compensation. Switch to manual mode for ISO and shutter controls. Tap `WB` to choose auto white balance, a preset, or a Kelvin value.
 
-When focus or exposure is locked, the `AF/AE` badge turns yellow. Tap it to return to auto focus and auto exposure.
+When focus is locked, the `AF/AE` badge turns yellow. Tap it to return to autofocus.
 
 ### How does the lens selector work?
 
@@ -44,10 +44,6 @@ Tap `LENS` to switch between supported rear cameras. RawCam shows RAW availabili
 ### How do separate focus and exposure points work?
 
 The `TAP` control switches what a preview tap does. `FOCUS` sets focus. `METER` sets the exposure point without moving focus. The exposure point shows as a yellow `AE` target.
-
-### What is the focus loupe?
-
-When you tap to focus, RawCam briefly shows a magnified loupe around the focus point.
 
 ### What are GRID, LEVEL, and TIMER?
 
@@ -75,7 +71,7 @@ Apple caps third-party RAW capture at 12MP on iPhone. The 48MP full sensor reado
 
 ### What does the histogram show?
 
-An 8-bar readout from shadows on the left to highlights on the right. Tall bars on either edge mean detail is being clipped (lost) at that end of the tonal range. RawCam tints the edge bar and shows `CLIP` when shadows or highlights are overloaded.
+An 8-bar readout from shadows on the left to highlights on the right. Tall bars on either edge mean detail is being clipped (lost) at that end of the tonal range. RawCam tints the edge bar and shows `CLIP` when shadows or highlights are overloaded. If highlights are clipping, yellow zebra stripes appear over the preview area as a stronger warning.
 
 ### Why does my photo look darker or flatter than the Camera app?
 
