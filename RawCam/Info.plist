@@ -3,10 +3,10 @@
 <plist version="1.0">
 <dict>
 	<key>NSCameraUsageDescription</key>
-	<string>RawCam needs camera access to take photos and videos.</string>
+	<string>RawCam uses the camera to show a live preview and capture RAW DNG photos, optional JPEGs, and videos you save to Photos.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>RawCam needs microphone access to record audio with videos.</string>
+	<string>RawCam uses the microphone only while recording video, so saved HEVC clips can include sound.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>RawCam needs photo library access to save your photos and videos.</string>
+	<string>RawCam adds captured DNG, JPEG, and HEVC files to your photo library so they appear in Photos.</string>
 </dict>
 </plist>
