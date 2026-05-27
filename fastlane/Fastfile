@@ -109,9 +109,11 @@ platform :ios do
     preflight
 
     api_key = app_store_api_key
+    current_build = get_build_number(xcodeproj: PROJECT)
 
     upload_to_app_store(
       api_key: api_key,
+      build_number: current_build,
       skip_binary_upload: true,
       skip_metadata: false,
       skip_screenshots: false,
@@ -136,9 +138,11 @@ platform :ios do
     metadata
 
     api_key = app_store_api_key
+    current_build = get_build_number(xcodeproj: PROJECT)
 
     upload_to_app_store(
       api_key: api_key,
+      build_number: current_build,
       skip_binary_upload: true,
       skip_metadata: false,
       skip_screenshots: false,
