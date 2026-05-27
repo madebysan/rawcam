@@ -2,9 +2,9 @@
 
 <h1>RawCam</h1>
 
-<p>A minimal iOS camera for sensor-pure DNG photos and clean video capture.</p>
+<p>A minimal iOS camera for unprocessed DNG photos, focused capture tools, and clean HEVC video.</p>
 
-<p><strong>v1.1</strong> · iOS 17+</p>
+<p><strong>Version 1.1</strong> · iOS 17+</p>
 
 <p>
   <img src="https://img.shields.io/badge/Swift-f05138" alt="Swift">
@@ -18,30 +18,18 @@
 
 ![RawCam interface, info panel, and a side-by-side comparison of the same scene captured with RawCam and the iOS Camera app](assets/screenshot.png)
 
-RawCam is a minimal iOS camera for sensor-pure DNG photos and clean video capture. Shoot RAW, open the DNG in Lightroom or any RAW editor, and process it yourself.
+RawCam saves the photo file before the iPhone Camera app has made its own processing decisions. Shoot a DNG, open it in Lightroom, Capture One, Darkroom, or another RAW editor, and decide how much sharpening, denoising, color, and contrast you want.
 
-## What it does
+## What v1.1 includes
 
-- **RAW mode.** Saves a single 12MP DNG with zero AI processing.
-- **RAW+JPG mode.** Captures both a clean DNG and an Apple-processed JPEG simultaneously (saved as two photos). Useful for comparing what the stock pipeline does to a shot.
-- **3x3 tools grid.** Exposure, white balance, lens, lock, timer, grid, level, tap targeting, and bracketing in one compact drawer.
-- **Tap to focus.** Tap anywhere on preview. Use `LOCK` to hold current AF/AE, or long-press for point-based focus lock.
-- **Manual exposure.** Toggle manual mode for ISO and shutter speed.
-- **EV compensation.** Adjust auto exposure without switching to full manual.
-- **Separate metering.** Switch tap mode between focus and exposure targeting.
-- **White balance controls.** Use auto, daylight, cloudy, tungsten, fluorescent, or Kelvin.
-- **Lens selector.** Switch supported rear lenses and see RAW availability honestly.
-- **Grid + level.** Optional composition grid and horizon level.
-- **Self-timer.** Off / 3s / 10s.
-- **Volume-button shutter.** Use the hardware volume buttons as a shutter release.
-- **RAW bracketing.** Captures three RAW frames at different EV values.
-- **Last-shot details.** Shows mode, lens, ISO, shutter, EV, white balance, clipping, and a preview when available.
-- **RawCam roll.** Opens recent RawCam captures in-app with preview thumbnails and capture details, without browsing your full Photos library.
-- **Basic video mode.** Records video to Photos with a minimal record button, elapsed timer, and capability-based format labels for HEVC, HDR, Log, and ProRes where available.
-- **App Shortcut.** Launch RawCam from Shortcuts, Siri, Spotlight, or the Action Button on supported iPhones.
-- **Flash toggle.** Off / on / auto.
-- **Front / back camera** switch.
-- **Live histogram + zebra.** Orange edge bars mark clipping, and zebra stripes warn when highlights blow out.
+- **RAW photos.** RAW mode saves a single 12MP DNG. RAW+JPG saves the DNG and an Apple-processed JPEG as two separate photos, which makes it easy to compare RawCam against the stock pipeline.
+- **Manual controls.** The controls drawer has `EXP`, `WB`, `LENS`, `LOCK`, `TAP`, `FORMAT`, `TIMER`, and `BRKT` controls for ISO, shutter speed, EV compensation, white balance presets, Kelvin adjustment, rear lens selection, AF/AE lock, separate focus/exposure targeting, RAW+JPG switching, self-timer, and three-shot RAW bracketing.
+- **Framing and capture aids.** Pinch-to-zoom, quick lens zoom, grid, horizon level, aspect guides, steady capture delay, hardware volume shutter, flash modes, and front/back camera switching are all built into the capture screen.
+- **Exposure warnings.** The live histogram marks clipped shadows or highlights with orange edge bars. Zebra stripes warn when highlights are blowing out.
+- **Last-shot details.** After a capture, RawCam can show the saved mode, lens, ISO, shutter, EV, white balance, clipping state, and a preview when one is available.
+- **RawCam roll.** The in-app roll shows recent photos and videos captured by RawCam, with thumbnails and capture details, without browsing your full Photos library.
+- **Video.** Video mode records HEVC clips to Photos with an elapsed timer. The `FORMAT` control exposes HDR, Log, ProRes, or ProRes Log only when the current device and session support them. `AUDIO` lets you record with or without microphone audio.
+- **Shortcuts and utility controls.** RawCam includes an App Shortcut for Shortcuts, Siri, Spotlight, and the Action Button. `HELP`, `STATUS`, and `RESET` sit outside the main capture grid so the shooting controls stay focused.
 
 ## Why not just use the iOS Camera app?
 
@@ -71,11 +59,12 @@ xcrun xctrace list devices
 
 ## Known limitations
 
-- **12MP cap.** iOS caps third-party RAW capture at 12MP. The 48MP full sensor readout is locked to Apple's own camera pipeline, so any third-party app hits the same ceiling.
+- **12MP RAW cap.** iOS caps third-party RAW capture at 12MP. The 48MP full sensor readout is locked to Apple's own camera pipeline, so any third-party app hits the same ceiling.
+- **RawCam roll scope.** The in-app roll indexes captures made by RawCam from this version forward. It uses add-only Photos access, so it does not read your full photo library.
 
 ## Alternatives
 
-RawCam stays focused on clean capture. If you need ProRAW processing, advanced video formats, film looks, or a full editing lab, use [Halide](https://halide.cam), [ProCamera](https://www.procamera-app.com), or [Not Boring Camera](https://notbor.ing/products/camera). All three are good.
+RawCam stays focused on clean capture. If you need ProRAW processing, a deeper video suite, film looks, or a full editing lab, use [Halide](https://halide.cam), [ProCamera](https://www.procamera-app.com), or [Not Boring Camera](https://notbor.ing/products/camera). All three are good.
 
 RawCam is the free, open-source version that does one thing.
 
@@ -91,7 +80,5 @@ Found a bug or have a feature idea? See the [support page](docs/support.md) for 
 ## License
 
 [MIT](LICENSE)
-
----
 
 Made by [santiagoalonso.com](https://santiagoalonso.com)

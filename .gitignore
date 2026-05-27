@@ -39,6 +39,9 @@ claude.md
 AGENTS.md
 GEMINI.md
 docs/research-audit.md
+_handoff*.md
+Debug/
+video-capabilities.txt
 .codex/
 .claude/
 
