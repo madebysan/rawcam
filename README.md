@@ -2,7 +2,8 @@
 
 <h1>RawCam</h1>
 
-<p>A minimal iOS camera for unprocessed DNG photos, focused capture tools, and clean HEVC video.</p>
+<p>Shoot unprocessed DNG photos on your iPhone.<br>
+Keep the sensor data, then decide the sharpening, color, and contrast yourself.</p>
 
 <p><strong>Version 1.1</strong> · iOS 17+</p>
 
@@ -20,7 +21,7 @@
 
 RawCam saves the photo file before the iPhone Camera app has made its own processing decisions. Shoot a DNG, open it in Lightroom, Capture One, Darkroom, or another RAW editor, and decide how much sharpening, denoising, color, and contrast you want.
 
-## What v1.1 includes
+## What RawCam captures
 
 - **RAW photos.** RAW mode saves a single 12MP DNG. RAW+JPG saves the DNG and an Apple-processed JPEG as two separate photos, which makes it easy to compare RawCam against the stock pipeline.
 - **Manual controls.** The controls drawer has `EXP`, `WB`, `LENS`, `LOCK`, `TAP`, `FORMAT`, `TIMER`, and `BRKT` controls for ISO, shutter speed, EV compensation, white balance presets, Kelvin adjustment, rear lens selection, AF/AE lock, separate focus/exposure targeting, RAW+JPG switching, self-timer, and three-shot RAW bracketing.
@@ -64,7 +65,7 @@ xcrun xctrace list devices
 
 ## Alternatives
 
-RawCam stays focused on clean capture. If you need ProRAW processing, a deeper video suite, film looks, or a full editing lab, use [Halide](https://halide.cam), [ProCamera](https://www.procamera-app.com), or [Not Boring Camera](https://notbor.ing/products/camera). All three are good.
+RawCam stays focused on clean capture. If you need ProRAW processing, a deeper video suite, film looks, or a full editing lab, use [Halide](https://halide.cam) or [ProCamera](https://www.procamera-app.com).
 
 RawCam is the free, open-source version that does one thing.
 
